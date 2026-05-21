@@ -1,0 +1,18 @@
+const handlers = {
+    harvester: require('role.harvester'),
+    hauler: require('role.hauler'),
+    builder: require('role.builder'),
+    upgrader: require('role.upgrader'),
+    healer: require('role.healer'),
+    drainer: require('role.drainer'),
+    drainerHealer: require('role.drainerHealer'),
+    longharvester: require('role.hauler'),
+    remoteHauler: require('role.remote.hauler'),
+    remoteBuilder: require('role.remote.builder'),
+    remoteMiner: require('role.remote.miner'),
+    attacker: require('role.attacker'),
+    manual: require('role.manual'),
+    scout: require('role.scout')
+};
+
+module.exports = handlers;
