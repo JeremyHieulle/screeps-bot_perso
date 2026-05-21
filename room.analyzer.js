@@ -197,8 +197,8 @@ function scoreQuadrant(room, core, dxSign, dySign, maxDepth) {
 }
 
 function medianBonus(x, y, quad) {
-    const dx = Math.abs(x - quad.centerX);
-    const dy = Math.abs(y - quad.centerY);
+    const dx = Math.abs(x - quad.dx);
+    const dy = Math.abs(y - quad.dy);
 
     // distance à la ligne médiane
     return Math.min(dx, dy);
@@ -467,21 +467,13 @@ function planMineral(room, core) {
         mark(p, "container", container.x, container.y, { tag: 'mineral', dependsOn: ['extractor']});
 }
 
-function planLabs(room, core) {
+function planLabs(room, core, quadrant) {
 
     const p = room.memory.plan;
     const terrain = room.getTerrain();
 
-    const quadrant = bestQuadrant(room, core);
-
-
     const qx = quadrant.dx;
     const qy = quadrant.dy;
-    
-    p.quadrant = {
-        qx: qx,
-        qy: qy
-    }
 
     //on tente l'optimisation des labs, sinon on flood
     let Q_TOP, Q_BOTTOM, Q_LEFT, Q_RIGHT;
@@ -561,7 +553,7 @@ function hasAdjacentRoad(plan, x, y) {
     return false;
 }
 
-function fillGrid(room, core) {
+function fillGrid(room, core, quadrant) {
 
     const p = room.memory.plan;
     const terrain = room.getTerrain();
@@ -584,7 +576,7 @@ function fillGrid(room, core) {
         const dy = tile.y - core.y
 
         let spacingD1, spacingD2;
-        if(p.quadrant.qx + p.quadrant.qy === 0) {
+        if(quadrant.dx + quadrant.dy === 0) {
             spacingD1 = 4;
             spacingD2 = 8;
         } else {
@@ -691,11 +683,13 @@ function fillRemaining(room, core) {
 
 function runPlanner(room, core) {
 
+    const quadrant = bestQuadrant(room, core);
+
     planCore(room, core);
 
-    planLabs(room, core);
+    planLabs(room, core, quadrant);
 
-    fillGrid(room, core);
+    fillGrid(room, core, quadrant);
 
     planController(room, core);
 
@@ -1020,33 +1014,9 @@ module.exports.analyzeRoom = function(room){
         const core = room.getCore();
 
         mem.plan = {
-            mandatory: {
-                spawn: [],
-                extension: [],
-                tower: [],
-                storage: [],
-                terminal: [],
-                lab: [],
-                nuker: [],
-                factory: [],
-                powerSpawn: [],
-                extractor: [],
-                observer: [],
-            },
-
             structures: {},
-            optional: {
-                roads: [],
-                containers: [],
-                links: [],
-                constructedWall: [],
-                rampart: []
-            },
-            
             occupied: {},
-            structures: {},
-            skeleton: [],
-            quadrant: {}
+            spatialJob: {}
         };
 
         runPlanner(room, core);        
