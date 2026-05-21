@@ -727,58 +727,6 @@ function runPlanner(room, core) {
     
 }
 
-function getAllowed(structureType, rcl) {
-    return CONTROLLER_STRUCTURES[structureType][rcl] || 0;
-}
-
-function countExisting(room, structureType) {
-
-    const built = room.find(FIND_STRUCTURES, {
-        filter: s => s.structureType === structureType
-    }).length;
-
-    const sites = room.find(FIND_CONSTRUCTION_SITES, {
-        filter: s => s.structureType === structureType
-    }).length;
-
-    return built + sites;
-}
-
-function buildNextStructure(room) {
-
-    const plan = room.memory.plan;
-    const rcl = room.controller.level;
-
-    for (const structureType in plan) {
-
-        const allowed = getAllowed(structureType, rcl);
-        const existing = countExisting(room, structureType);
-
-        if (existing >= allowed) continue;
-
-        const candidates = plan[structureType];
-
-        for (const pos of candidates) {
-
-            const occupied =
-                room.lookForAt(LOOK_STRUCTURES, pos.x, pos.y).length ||
-                room.lookForAt(LOOK_CONSTRUCTION_SITES, pos.x, pos.y).length;
-
-            if (occupied) continue;
-
-            room.createConstructionSite(
-                pos.x,
-                pos.y,
-                structureType
-            );
-
-            return true;
-        }
-    }
-
-    return false;
-}
-
 function buildPlanningMatrix(room) {
 
     const matrix = new PathFinder.CostMatrix();
@@ -1009,29 +957,26 @@ module.exports.analyzeRoom = function(room){
 
     const mem = room.memory;
 
-    if (room.getCore() === ERR_NOT_FOUND) {
-        const core = findBestCore(room);
-        if (core) {
-            mem.corePos = {
+    if (mem.plan)
+        return
+    
+
+    const core = findBestCore(room);
+    if (core) {
+        mem.plan = {
+            corePos = {
                 x: core.x,
                 y: core.y,
-                roomName: core.roomName
-            }
-            console.log("BEST CORE:",core);
-        } else {
-            console.log("No Best Core found...");
-        }
-    }
-
-    if (!mem.plan) {
-        const core = room.getCore();
-
-        mem.plan = {
+            },
             structures: {},
             occupied: {},
             spatialJob: {}
-        };
-
-        runPlanner(room, core);        
+        }
+        console.log("BEST CORE:",core);
+    } else {
+        console.log("Abort analysing room. No Best Core found...");
+        return;
     }
+
+    runPlanner(room, core);
 };

@@ -73,16 +73,16 @@ Room.prototype.debugPlan = function(plan) {
 Room.prototype.getCore = function () {
     const mem = this.memory;
 
-    if (!mem.corePos) {
-        console.log(`${this}.getCore() === ERR_NOT_FOUND`);
+    if (!mem.plan.corePos) {
+        console.log(`${this} Core not found, need room.analyzer`);
         return ERR_NOT_FOUND;
     }
 
     const core = new RoomPosition(
         mem.corePos.x,
-        mem.corePos.y,
-        mem.corePos.roomName
+        mem.corePos.y
     )
+    
     return core
 }
 
