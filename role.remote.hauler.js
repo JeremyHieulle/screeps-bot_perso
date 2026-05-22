@@ -40,7 +40,7 @@ module.exports = {
 
         } else {
 
-            if ( creep.pos !== haulFrom ) {
+            if ( !creep.pos.isEqualTo(haulFrom) ) {
                 creep.moveTo(haulFrom)
                 return;
             }
