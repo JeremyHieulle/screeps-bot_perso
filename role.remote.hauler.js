@@ -40,31 +40,28 @@ module.exports = {
 
         } else {
 
-            if ( creep.room.name !== haulFrom.roomName ) {
+            if ( creep.pos !== haulFrom ) {
                 creep.moveTo(haulFrom)
                 return;
             }
 
-            if ( creep.room.name === haulFrom.roomName ) {
-                if (creep.pos.x === 49) {
-                    creep.moveTo(haulFrom);
-                    return;
-                }
-            }
         } 
+
         const drop = Game.rooms[haulFrom.roomName].find(FIND_DROPPED_RESOURCES)
         if (drop.length > 0) {
             creep.myPickup(drop[0]);
             return;
         }
+
         const container = Game.rooms[haulFrom.roomName].find(FIND_STRUCTURES, {
             filter: s => ( s.structureType === STRUCTURE_CONTAINER ||
                         s.structureType === STRUCTURE_STORAGE ) &&
                         s.store[RESOURCE_ENERGY] > 0
         })
-        if (container.length > 0) {
+        if ( container.length > 0 && container[0].store[RESOURCE_ENERGY] > 0 ) {
             creep.myWithdraw(container[0], RESOURCE_ENERGY)
+        } else {
+            creep.memory.working = true;
         }
-
     }
 }
