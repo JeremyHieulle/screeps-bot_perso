@@ -22,18 +22,14 @@ module.exports = {
                 creep.moveTo(haulTo.controller)
                 return;
             } 
-            const storage = creep.room.findStorage();
-            if (storage)  {
-                creep.myTransfer(storage);
+            const storage = creep.room.getCached("strcture", STRUCTURE_STORAGE);
+            if (storage.length > 0) { {
+                creep.myTransfer(storage[0]);
                 return
             }
 
-            const any = creep.room.find(FIND_STRUCTURES, {
-                filter: s => s.structureType === STRUCTURE_CONTAINER &&
-                            s.pos.x === creep.room.memory.corePos.x &&
-                            s.pos.y === creep.room.memory.corePos.y              
-            })
-            if (any)  {
+            const any = creep.room.getCached("structure", STRUCTURE_CONTAINER);
+            if (any.length > 0) { {
                 creep.myTransfer(any[0]);
                 return
             }
