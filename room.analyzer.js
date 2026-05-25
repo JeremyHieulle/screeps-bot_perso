@@ -445,7 +445,7 @@ function planSources(room, core) {
         }
 
         plan.spatialJob.push({
-            tag: 'controller',
+            tag: 'source',
             targetId: s.id,
             workPos: workPos
         });
@@ -964,13 +964,13 @@ module.exports.analyzeRoom = function(room){
     const core = findBestCore(room);
     if (core) {
         mem.plan = {
-            corePos = {
+            corePos: {
                 x: core.x,
                 y: core.y,
             },
             structures: {},
             occupied: {},
-            spatialJob: {}
+            spatialJob: []
         }
         console.log("BEST CORE:",core);
     } else {

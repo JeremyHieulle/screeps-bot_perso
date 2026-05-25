@@ -115,8 +115,8 @@ Creep.prototype.dumpNonEnergy = function (range) {
     if (!this.room.controller?.my) 
         return ERR_NOT_OWNER;
 
-    let storage = this.room.findStorage();
-    if (!storage) storage = this.room.findTerminal();
+    let storage = this.room.getCached("structure", STRUCTURE_STORAGE);
+    if (!storage) storage = this.room.getCached("structure", STRUCTURE_TERMINAL);
 
     if (!storage)
         return ERR_NOT_FOUND;
@@ -185,9 +185,7 @@ Creep.prototype.run = function () {
 
 Creep.prototype.getEnergy = function (options = {}) {
 
-    const links = this.room.find(FIND_STRUCTURES, {
-        filter: s => s.structureType === STRUCTURE_LINK
-    });
+    const links = this.room.getCached("structure", STRUCTURE_LINK)
 
     if ( this.memory.role === 'upgrader' ) {
         for ( const link of links ) {
@@ -198,7 +196,7 @@ Creep.prototype.getEnergy = function (options = {}) {
             }
         }
 
-        const upgradeContainer = this.room.findUpgradeContainer();
+        const upgradeContainer = this.room.findByTag("controller", STRUCTURE_CONTAINER);
 
         if ( upgradeContainer && upgradeContainer.store[RESOURCE_ENERGY] > 0 ) {
             this.myWithdraw(upgradeContainer, RESOURCE_ENERGY);
@@ -228,21 +226,11 @@ Creep.prototype.getEnergy = function (options = {}) {
 
     const targets = [];
 
-    const upgradeContainerSite = this.room.findUpgradeContainerSite();
-    const upgradeContainer = this.room.findUpgradeContainer();
-    const coreContainer = this.room.findCoreContainer();
 
-    const containers = this.room.find(FIND_STRUCTURES, {
-        filter: s => {
-            if (excludeIds.includes(s.id)) return false;
-
-            return (
-            (s.structureType === STRUCTURE_CONTAINER ||
-             s.structureType === STRUCTURE_STORAGE) &&
-            s.store[RESOURCE_ENERGY] > 0
-            );
-        }
-    });
+    const upgradeContainer = this.room.findByTag("controller", STRUCTURE_CONTAINER);
+    const coreContainer = this.room.findByTag("core", STRUCTURE_CONTAINER);
+    const storage = this.room.getCached("structure", STRUCTURE_STORAGE);
+    const containers = this.room.getCached("structure", STRUCTURE_CONTAINER);
 
     const tombstones = this.room.find(FIND_TOMBSTONES, {
         filter: t => t.store[RESOURCE_ENERGY] > 0
@@ -266,32 +254,42 @@ Creep.prototype.getEnergy = function (options = {}) {
     }
 
     for (const container of containers) {
-        if ( upgradeContainer ) {
-            if ( container.id === upgradeContainer.id &&
-                (
-                    this.memory.role === 'hauler' ||
-                    this.memory.role === 'remoteHauler'
-                )
-            ) continue;
-            if ( container.id === upgradeContainer.id && 
-                 this.memory.role !== 'upgrader' && 
-                 upgradeContainer.store.getFreeCapacity() > 1000
-            ) continue;
+
+        const isUpgrade = upgradeContainer && container.id === upgradeContainer.id;
+        const isCore = coreContainer && container.id === coreContainer.id;
+
+        if (isUpgrade) {
+            if (this.memory.role !== 'upgrader' &&
+                this.memory.role !== 'remoteHauler' &&
+                upgradeContainer.store.getFreeCapacity() > 1000) continue;
         }
-        if ( coreContainer ) {
-            if ( container.id === coreContainer.id &&
-                (
-                    this.memory.role === 'hauler' ||
-                    this.memory.role === 'remoteHauler'
-                )
-            ) continue;
+
+        if (isCore && this.memory.jobId === null) {
+            if (this.memory.role === 'hauler' ||
+                this.memory.role === 'remoteHauler') continue;
         }
+
+        if (container.store[RESOURCE_ENERGY] <= 0) continue;
+
         targets.push({
             id: container.id,
             action: 'withdraw',
             type: 'container',
             free: container.store.getFreeCapacity(),
             pos: container.pos
+        });
+    }
+
+    for (const s of storage) {
+
+        if (s.store[RESOURCE_ENERGY] <= 0) continue;
+
+        targets.push({
+            id: s.id,
+            action: 'withdraw',
+            type: 'storage',
+            free: s.store.getFreeCapacity(),
+            pos: s.pos
         });
     }
 
@@ -316,8 +314,7 @@ Creep.prototype.getEnergy = function (options = {}) {
     for (const drop of drops) {
         if (drop.resourceType !== RESOURCE_ENERGY) continue
         if (
-            upgradeContainerSite && 
-            drop.pos.isNearTo(upgradeContainerSite) &&
+            drop.pos.isNearTo(this.room.memory.plan.corePos.x, this.room.memory.plan.corePos.y) &&
             this.memory.role !== 'upgrader' &&
             this.memory.role !== 'builder'
         ) { continue }
@@ -424,30 +421,19 @@ Creep.prototype.doJob = function(job) {
                 }
             } else {
                 if ( target instanceof Mineral ) {
-                    if (this.store[RESOURCE_LEMERGIUM] > 47) {
-                        const storage = this.room.findStorage();
-                        if (storage) {
-                            this.myTransfer(storage, RESOURCE_LEMERGIUM);
+                    for ( const resourceType in this.store ) {
+                        if (this.store[resourceType] > 47) {
+                            const storage = this.room.getCached("structure", STRUCTURE_STORAGE);
+                            if (storage.length > 0) {
+                                this.myTransfer(storage[0], resourceType);
+                                return;
+                            }
+                            const terminal = this.room.getCached("structure", STRUCTURE_TERMINAL);
+                            if (terminal.length > 0) {
+                                this.myTransfer(terminal[0], resourceType);
+                            }
                             return;
                         }
-                        const terminal = Game.getObjectById('6a08600cf8541019a0216224')
-                        if (terminal && this.room.name === 'W36S38') {
-                            this.myTransfer(terminal, RESOURCE_LEMERGIUM);
-                        }
-                        return;
-                    }
-
-                        if (this.store[RESOURCE_UTRIUM] > 47) {
-                        const storage = this.room.findStorage();
-                        if (storage) {
-                            this.myTransfer(storage, RESOURCE_UTRIUM);
-                            return;
-                        }
-                        const terminal = Game.getObjectById('6a08600cf8541019a0216224')
-                        if (terminal && this.room.name === 'W36S38') {
-                            this.myTransfer(terminal, RESOURCE_UTRIUM);
-                        }
-                        return;
                     }
                 }
                 this.myHarvest(target);

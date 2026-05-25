@@ -12,7 +12,7 @@ module.exports = {
                     return;
                 } else {
 
-                    const upgradeContainer = creep.room.findUpgradeContainer();
+                    const upgradeContainer = creep.room.findByTag("controller", STRUCTURE_CONTAINER);
                     
                     if ( upgradeContainer && upgradeContainer.store[RESOURCE_ENERGY] > 0 ) {
 
@@ -37,7 +37,7 @@ module.exports = {
 
         if (creep.store[RESOURCE_ENERGY] === 0) {
 
-            const upgradeContainer = creep.room.findUpgradeContainer();
+            const upgradeContainer = creep.room.findByTag("controller", STRUCTURE_CONTAINER);
             
             if ( upgradeContainer && upgradeContainer.store[RESOURCE_ENERGY] > 0 ) {
 

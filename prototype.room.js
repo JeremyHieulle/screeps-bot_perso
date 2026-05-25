@@ -1,11 +1,58 @@
 const { buildBody } = require('spawning.bodyBuilder');
+const cache = require('room.cache');
+
+Room.prototype.buildCache = function() {
+    cache.buildRoomCache(this);
+}
+
+Room.prototype.getCached = function(category, item) {
+
+    this._cached ??= {};
+    this._cached[category] ??= {};
+
+    if (this._cached[category][item]) {
+        return this._cached[category][item];
+    }
+
+    const ids = this.memory.cache?.[category]?.[item] || [];
+
+    const objects = [];
+
+    for (const id of ids) {
+
+        const obj = Game.getObjectById(id);
+
+        if (obj) {
+            objects.push(obj);
+        }
+    }
+
+    // runtime cache
+    this._cached[category][item] = objects;
+
+    return objects;
+};
+
+Room.prototype.getCache = function(category, item) {
+
+    this._cache ??= {};
+    this._cache[category] ??= {};
+
+    if (this._cache[category][item]) {
+        return this._cache[category][item];
+    }
+
+    const ids = this.memory.cache?.[category]?.[item] || [];
+
+    // runtime cache
+    this._cache[category][item] = ids;
+
+    return ids;
+};
 
 Room.prototype.hasExtractor = function(mineral) {
-    const extractor = this.getObjectByPos(
-        mineral.pos,
-        LOOK_STRUCTURES,
-        o => o.structureType === STRUCTURE_EXTRACTOR
-    )
+
+    const extractor = this.getCached(LOOK_STRUCTURES, STRUCTURE_EXTRACTOR)    
     
     if (extractor) return true;
 
@@ -13,7 +60,6 @@ Room.prototype.hasExtractor = function(mineral) {
 }
 
 Room.prototype.debugPlan = function(plan) {
-
     const v = this.visual;
 
     const colorMap = {
@@ -71,16 +117,17 @@ Room.prototype.debugPlan = function(plan) {
 };
 
 Room.prototype.getCore = function () {
-    const mem = this.memory;
+    const mem = this.memory.plan;
 
-    if (!mem.plan.corePos) {
+    if (!mem.corePos) {
         console.log(`${this} Core not found, need room.analyzer`);
         return ERR_NOT_FOUND;
     }
 
     const core = new RoomPosition(
         mem.corePos.x,
-        mem.corePos.y
+        mem.corePos.y,
+        this.name
     )
     
     return core
@@ -115,7 +162,6 @@ Room.prototype.getObjectByPos = function (...args) {
 };
 
 Room.prototype.requestJob = function (creep) {
-
     creep.memory.jobId ??= null;
 
     const role = creep.memory.role;
@@ -127,27 +173,62 @@ Room.prototype.requestJob = function (creep) {
         exclude.add('withdraw');
         exclude.add('pickup');
     }
-    
+
+    const corePos = this.memory.plan.corePos
     const jobs = Object.values(this.memory.jobs)
-        .filter(job =>
-            jobTypes.includes(job.type) &&
-            !exclude.has(job.type) &&
-            !job.assigned
-        )
+        .filter(job => {
+
+            if (!jobTypes.includes(job.type)) return false;
+            if (exclude.has(job.type)) return false;
+            if (job.assigned) return false;
+
+            // dirty anti-core pickup for haulers
+            if (
+                role === 'hauler' &&
+                job.type === 'pickup'
+            ) {
+                const target = Game.getObjectById(job.originId);
+
+                if (
+                    target &&
+                    corePos &&
+                    target.pos.getRangeTo(corePos.x, corePos.y) <= 2
+                ) {
+                    return false;
+                }
+            }
+
+            return true;
+        })
+        .map(job => {
+            const target = Game.getObjectById(job.originId);
+
+            if (!target) return null;
+
+            return {
+                ...job,
+                target
+            };
+        })
+        .filter(Boolean)
         .sort((a, b) =>
-            creep.pos.getRangeTo(a.pos.x, a.pos.y) -
-            creep.pos.getRangeTo(b.pos.x, b.pos.y)
+            creep.pos.getRangeTo(a.target) -
+            creep.pos.getRangeTo(b.target)
         );
 
+    
     if (!jobs.length) return false;
 
-    const job = jobs[0];
+    const job = this.memory.jobs[jobs[0].id];
 
     // réservation immédiate
     creep.memory.jobId = job.id;
     job.assigned = creep.name;
     job.assignedTick = Game.time;
+
     
+    console.log(creep.memory.jobId)
+    console.log(creep.room.memory.jobs[jobs[0].id].id)
     return true;
 };
 
@@ -293,9 +374,19 @@ Room.prototype.spawnCreepsNeeded = function() {
 
     if ( this.memory.requested['builder'] !== buildersNeeded ) this.memory.requested['builder'] = buildersNeeded
 
-    if ( ( creepCount['harvester'] ??= 0 ) < this.memory.requested['harvester'] ) this.spawnCreepForRole('harvester');
+    if ( ( creepCount['harvester'] ??= 0 ) < this.getCache("logistics", "harvesterNeed") ) this.spawnCreepForRole('harvester');
 
-    if ( ( creepCount['hauler'] ??= 0 ) < this.memory.requested['hauler'] ) this.spawnCreepForRole('hauler');
+    const droppedEnergy = this.find(FIND_DROPPED_RESOURCES)
+        .reduce((sum, r) => sum + r.amount, 0);
+
+    const haulStress = droppedEnergy / 1000;
+
+    const requestedHauler = Math.max(
+        this.getCache("logistics", "haulerNeed"),
+        Math.ceil(haulStress)
+    );
+
+    if ( ( creepCount['hauler'] ??= 0 ) < requestedHauler ) this.spawnCreepForRole('hauler');
 
     if ( ( creepCount['upgrader'] ??= 0 ) < this.memory.requested['upgrader'] ) this.spawnCreepForRole('upgrader');
 
@@ -354,26 +445,6 @@ Room.prototype.spawnCreepForRole = function(role, max, opts) {
     });
 };
 
-// Spawner un creep pour un job donné
-Room.prototype.spawnCreepForRole_old = function(role) {
-    this.memory.spawnQueue ??= [];
-
-    const exists = this.memory.spawnQueue.some(
-        r => r.role === role
-    );
-
-    if (exists) return;
-
-    console.log(`${this} ${role} added to spawnQueue`);
-
-    this.memory.spawnQueue.push({
-        priority: this.getRolePriority(role),
-        role,
-        name: `${role}_${Game.time}_${Math.random().toString(36).slice(2,4)}`,
-
-    });
-};
-
 // Obtenir le rôle approprié pour un job
 Room.prototype.getRoleForJob = function (job) {
 
@@ -385,7 +456,7 @@ Room.prototype.getRoleForJob = function (job) {
         case 'repair': return 'builder';
         case 'withdraw': return 'hauler';
         default: false;
-    }  
+    }
 }
 
 Room.prototype.getJobTypeForRole = function (role) {
@@ -423,133 +494,22 @@ Room.prototype.getRolePriority = function(role) {
     }
 };
 
-Room.prototype.findUpgradeContainerSite = function() {
-    const mem = this.memory
-    
-    if ( !mem.upgradeContainerPos ) return false;
+Room.prototype.findByTag = function (tag, structureType = null) {
 
-    const upgradeContainerSite = this.getObjectByPos(
-        mem.upgradeContainerPos.x,
-        mem.upgradeContainerPos.y,
-        LOOK_CONSTRUCTION_SITES,
-        o => o.structureType === STRUCTURE_CONTAINER
-    )
+    const meta = this.memory.cache?.structureMeta;
+    if (!meta) return null;
 
-    return ( upgradeContainerSite ) ? upgradeContainerSite : false;
-}
+    for (const id in meta) {
 
-Room.prototype.findUpgradeContainer = function () {
-    const mem = this.memory
-    
-    if ( !mem.upgradeContainerPos ) return false;
+        if (meta[id].tag !== tag) continue;
 
-    const upgradeContainer = this.getObjectByPos(
-        mem.upgradeContainerPos.x,
-        mem.upgradeContainerPos.y,
-        LOOK_STRUCTURES,
-        o => o.structureType === STRUCTURE_CONTAINER
-    )
-
-    return ( upgradeContainer ) ? upgradeContainer : false;
-}
-
-Room.prototype.findCoreContainer = function () {
-    const mem = this.memory
-    
-    if ( !mem.corePos ) return false;
-
-    const upgradeContainer = this.getObjectByPos(
-        mem.corePos.x,
-        mem.corePos.y,
-        LOOK_STRUCTURES,
-        o => o.structureType === STRUCTURE_CONTAINER
-    )
-
-    return ( upgradeContainer ) ? upgradeContainer : false;
-}
-
-Room.prototype.findStorage = function () {
-
-    const cache = this.memory._structureCache?.built;
-    const plan = this.memory.plan?.structures?.storage?.[0];
-
-    let storage;
-
-    // ==============================
-    // 1. FAST PATH : ID CACHE
-    // ==============================
-    const cachedId = cache?.storage?.[0]?.id;
-    if (cachedId) {
-        storage = Game.getObjectById(cachedId);
-
-        if (storage) return storage;
-
-        // invalidate dead cache
-        cache.storage[0].id = null;
-    }
-
-    // ==============================
-    // 2. PLAN VALIDATION (pos check)
-    // ==============================
-    if (plan?.x !== undefined && plan?.y !== undefined) {
-
-        storage = this.getObjectByPos(
-            plan.x,
-            plan.y,
-            LOOK_STRUCTURES,
-            s => s.structureType === STRUCTURE_STORAGE
-        );
-
-        if (storage) {
-            cache.storage ??= [];
-
-            cache.storage[0] = {
-                id: storage.id,
-                x: plan.x,
-                y: plan.y
-            };
-
-            return storage;
+        if (structureType) {
+            const obj = Game.getObjectById(id);
+            if (!obj || obj.structureType !== structureType) continue;
         }
-    }
 
-    // ==============================
-    // 3. FALLBACK ENGINE FIND
-    // ==============================
-    storage = this.find(FIND_STRUCTURES, {
-        filter: s => s.structureType === STRUCTURE_STORAGE
-    })[0];
-
-    if (storage) {
-        cache.storage ??= [];
-
-        cache.storage[0] = {
-            id: storage.id,
-            x: storage.pos.x,
-            y: storage.pos.y
-        };
-
-        return storage;
+        return Game.getObjectById(id);
     }
 
     return null;
-};
-
-Room.prototype.findTerminal = function () {
-    const planTerminal = this.memory.plan?.structures?.terminal;
-
-    if (planTerminal) {
-        const { x, y, dep } = planTerminal[0];
-
-        const terminal = this.getObjectByPos(
-            x,
-            y,
-            LOOK_STRUCTURES,
-            s => s.structureType === STRUCTURE_TERMINAL
-        );
-
-        if (terminal) return terminal;
-    }
-
-    return false;
 };

@@ -50,7 +50,7 @@ module.exports = {
 
         // if (creep.memory.working) {
         //     creep.say('🕹 🎒');
-        //     const terminal = creep.room.findTerminal();
+        //     const terminal = creep.room.getCached("structure", STRUCTURE_TERMINAL);
         //     if (terminal) {
         //         for (const resourceType in creep.store) {
         //             creep.myTransfer(terminal, resourceType);
