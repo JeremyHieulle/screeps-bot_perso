@@ -3,7 +3,7 @@ module.exports = {
         const forcedAttack = (Game.flags.attack);
         if (forcedAttack) {
             if(creep.room.name === Game.flags.attack.room.name) {
-                const targets = creep.pos.findInRange(FIND_HOSTILE_CREEPS, 3);
+                const targets = creep.pos.findInRange(FIND_HOSTILE_CREEPS, 3).filter(t => !isAlly(t.owner.username));
                 if(targets.length > 0) {
                     if(creep.attack(targets[0]) == ERR_NOT_IN_RANGE) {
                         creep.moveTo(targets[0]);
@@ -14,7 +14,8 @@ module.exports = {
                 const target = creep.pos.findClosestByPath(FIND_STRUCTURES, {
                     filter: s =>
                         s.structureType === STRUCTURE_RAMPART &&
-                        !s.my
+                        !s.my && 
+                        !isAlly(s.owner.username)
                 });
 
 
@@ -29,7 +30,7 @@ module.exports = {
             return;
         }
 
-        const hostiles = creep.room.find(FIND_HOSTILE_CREEPS)
+        const hostiles = creep.room.find(FIND_HOSTILE_CREEPS).filter(c => !isAlly(c.owner.username));
         if (hostiles.length > 0 ) {
             if (creep.attack(hostiles[0]) === ERR_NOT_IN_RANGE) {
                 creep.moveTo(hostiles[0])

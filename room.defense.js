@@ -16,6 +16,7 @@ module.exports = {
 
         const hostiles = room.find(FIND_HOSTILE_CREEPS, {
             filter: c =>
+                !isAlly(c.owner.username) &&
                 c.pos.x < BORDER_RIGHT - PAD &&
                 c.pos.x > BORDER_LEFT + PAD &&
                 c.pos.y < BORDER_BOTTOM - PAD &&
