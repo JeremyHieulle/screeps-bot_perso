@@ -279,6 +279,7 @@ Creep.prototype.getEnergy = function (options = {}) {
 
     for (const s of storage) {
         if (this.memory.jobId === `haul_${s.id}`) continue;
+        if (excludeIds.has(s.id)) continue;
         if (s.store[RESOURCE_ENERGY] <= 0) continue;
 
         targets.push({
