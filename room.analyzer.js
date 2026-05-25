@@ -197,8 +197,8 @@ function scoreQuadrant(room, core, dxSign, dySign, maxDepth) {
 }
 
 function medianBonus(x, y, quad) {
-    const dx = Math.abs(x - quad.centerX);
-    const dy = Math.abs(y - quad.centerY);
+    const dx = Math.abs(x - quad.dx);
+    const dy = Math.abs(y - quad.dy);
 
     // distance à la ligne médiane
     return Math.min(dx, dy);
@@ -308,44 +308,69 @@ function bestQuadrant(room, core) {
 function mark(plan, type, x, y, opts = {}) {
 
     const key = `${x}:${y}`;
-    if (plan.occupied[key]) return ERR_INVALID_TARGET;
 
-    plan.occupied[key] = type;
+    plan.occupied ??= {};
 
-    if (!plan.structures[type])
-        plan.structures[type] = [];
+    const occupied = plan.occupied[key] || [];
 
-    plan.structures[type].push({
-        x,
-        y,
-        tag: opts.tag,
-        dependsOn: opts.dependsOn || []
-    });
+    const overlapable = new Set([
+        STRUCTURE_ROAD,
+        STRUCTURE_CONTAINER,
+        STRUCTURE_RAMPART,
+        'workPos'
+    ]);
+
+    // overlap validation
+    for (const existingType of occupied) {
+
+        const allowed =
+            overlapable.has(type) &&
+            overlapable.has(existingType);
+
+        if (!allowed) {
+            return ERR_INVALID_TARGET;
+        }
+    }
+
+    occupied.push(type);
+
+    plan.occupied[key] = occupied;
+
+    if ( type !== 'workPos' ) {
+        plan.structures[type] ??= [];
+
+        plan.structures[type].push({
+            x,
+            y,
+            dependsOn: opts.dependsOn || [],
+            ...opts
+        });
+    }
 
     return OK;
 }
 
 function planCore(room, core) {
 
-    const p = room.memory.plan;
+    const plan = room.memory.plan;
 
     const cx = core.x;
     const cy = core.y;
 
     // CONTAINER CENTRAL (en attendant storage)
-    mark(p, "container", cx, cy, { tag: 'core' });
+    mark(plan, "container", cx, cy, { tag: 'core' });
 
     // STORAGE
-    mark(p, "storage", cx + 1, cy);
+    mark(plan, "storage", cx + 1, cy);
 
     // SPAWN
-    mark(p, "spawn", cx, cy + 1, { tag: 'core' });
+    mark(plan, "spawn", cx, cy + 1, { tag: 'core' });
 
     // TERMINAL
-    mark(p, "terminal", cx - 1, cy);
+    mark(plan, "terminal", cx - 1, cy);
 
     // LINK CORE
-    mark(p, "link", cx, cy - 1, { tag: 'core' });
+    mark(plan, "link", cx, cy - 1, { tag: 'core' });
 
     // ROADS around core (cross)
     const offsets = [
@@ -357,7 +382,7 @@ function planCore(room, core) {
     ];
 
     for (const [dx,dy] of offsets) {
-        mark(p, "road", cx + dx, cy + dy, { tag: 'core' });
+        mark(plan, "road", cx + dx, cy + dy, { tag: 'core' });
     }
 }
 
@@ -392,37 +417,38 @@ function getPerpendicularPos(pos1, pos2) {
 
 function planController(room, core) {
 
-    const p = room.memory.plan;
+    const plan = room.memory.plan;
 
     const path = PathFinder.search(
         core,
         { pos: room.controller.pos, range: 3 }
     ).path;
 
-    const container = path[path.length - 2];
-    const stand = path[path.length - 1];
+    const containerPos = path[path.length - 2];
+    console.log(JSON.stringify(containerPos))
+    const workPos = path[path.length - 1];
 
-    const linkPos = getPerpendicularPos(container, stand);
+    const linkPos = getPerpendicularPos(containerPos, workPos);
 
-    mark(p, "container", container.x, container.y, { tag: 'controller'});
-    mark(p, "link", linkPos.x, linkPos.y, { tag: 'controller'});
+    mark(plan, "container", containerPos.x, containerPos.y, { tag: 'controller' });
+    mark(plan, "link", linkPos.x, linkPos.y, { tag: 'controller'});
+    mark(plan, "workPos", workPos.x, workPos.y, {tag: 'controller'});
+
     for (let i = 1; i <= path.length - 1; i++) {
-        mark(p, "road", path[i].x, path[i].y, { tag: 'controller'});
+        mark(plan, "road", path[i].x, path[i].y, { tag: 'controller'});
     }
 
-    p.controller = { container, stand };
+    plan.spatialJob.push({
+        tag: 'controller',
+        targetId: room.controller.id,
+        workPos: workPos
+    });
 
-    //LEGACY
-    room.memory.upgradeContainerPos = {
-        x: container.x,
-        y: container.y,
-        roomName: room.name
-    }
 }
 
 function planSources(room, core) {
 
-    const p = room.memory.plan;
+    const plan = room.memory.plan;
 
     const sources = room.find(FIND_SOURCES);
 
@@ -433,24 +459,30 @@ function planSources(room, core) {
             { pos: s.pos, range: 1 }
         ).path;
 
-        const container = path[path.length - 1];
+        const containerPos = path[path.length - 1];
+        const workPos = path[path.length - 1];
 
-        const linkPos = getPerpendicularPos(container, s.pos);
+        const linkPos = getPerpendicularPos(containerPos, s.pos);
 
-        mark(p, "container", container.x, container.y, { tag: 'source'});
-        mark(p, "link", linkPos.x, linkPos.y, { tag: 'source'});
+        mark(plan, "container", containerPos.x, containerPos.y, { tag: 'source'});
+        mark(plan, "link", linkPos.x, linkPos.y, { tag: 'source'});
+        mark(plan, "workPos", workPos.x, workPos.y, {tag: 'controller'});
+
         for (let i = 1; i <= path.length - 2; i++) {
-            mark(p, "road", path[i].x, path[i].y, { tag: 'source'});
+            mark(plan, "road", path[i].x, path[i].y, { tag: 'source'});
         }
 
-        p.sources = p.sources || {};
-        p.sources[s.id] = container;
+        plan.spatialJob.push({
+            tag: 'source',
+            targetId: s.id,
+            workPos: workPos
+        });
     }
 }
 
 function planMineral(room, core) {
 
-    const p = room.memory.plan;
+    const plan = room.memory.plan;
 
     const mineral = room.find(FIND_MINERALS)[0];
 
@@ -459,29 +491,31 @@ function planMineral(room, core) {
         { pos: mineral.pos, range: 1 }
     ).path;
 
-    const container = path[path.length - 1];
+    const containerPos = path[path.length - 1];
+    const workPos = path[path.length - 1];
 
-        for (let i = 1; i <= path.length - 2; i++) {
-            mark(p, "road", path[i].x, path[i].y, { tag: 'mineral'});
-        }
-        mark(p, "container", container.x, container.y, { tag: 'mineral', dependsOn: ['extractor']});
+    for (let i = 1; i <= path.length - 1; i++) {
+        mark(plan, "road", path[i].x, path[i].y, { tag: 'mineral', dependsOn: ['extractor'] });
+    }
+
+    mark(plan, "container", containerPos.x, containerPos.y, { tag: 'mineral', dependsOn: ['extractor'] });
+    mark(plan, "extractor", mineral.pos.x, mineral.pos.y, { tag: 'mineral' })
+    mark(plan, "workPos", workPos.x, workPos.y, {tag: 'controller'});
+    
+    plan.spatialJob.push({
+        tag: 'mineral',
+        targetId: mineral.id,
+        workPos: workPos
+    });
 }
 
-function planLabs(room, core) {
+function planLabs(room, core, quadrant) {
 
     const p = room.memory.plan;
     const terrain = room.getTerrain();
 
-    const quadrant = bestQuadrant(room, core);
-
-
     const qx = quadrant.dx;
     const qy = quadrant.dy;
-    
-    p.quadrant = {
-        qx: qx,
-        qy: qy
-    }
 
     //on tente l'optimisation des labs, sinon on flood
     let Q_TOP, Q_BOTTOM, Q_LEFT, Q_RIGHT;
@@ -561,7 +595,7 @@ function hasAdjacentRoad(plan, x, y) {
     return false;
 }
 
-function fillGrid(room, core) {
+function fillGrid(room, core, quadrant) {
 
     const p = room.memory.plan;
     const terrain = room.getTerrain();
@@ -584,7 +618,7 @@ function fillGrid(room, core) {
         const dy = tile.y - core.y
 
         let spacingD1, spacingD2;
-        if(p.quadrant.qx + p.quadrant.qy === 0) {
+        if(quadrant.dx + quadrant.dy === 0) {
             spacingD1 = 4;
             spacingD2 = 8;
         } else {
@@ -691,17 +725,19 @@ function fillRemaining(room, core) {
 
 function runPlanner(room, core) {
 
+    const quadrant = bestQuadrant(room, core);
+
     planCore(room, core);
 
-    planLabs(room, core);
-
-    fillGrid(room, core);
+    planLabs(room, core, quadrant);
 
     planController(room, core);
 
     planSources(room, core);
 
     planMineral(room, core);
+
+    fillGrid(room, core, quadrant);
 
     fillRCL6(room, core);
 
@@ -718,58 +754,6 @@ function runPlanner(room, core) {
     } while (ret !== OK)
 
     
-}
-
-function getAllowed(structureType, rcl) {
-    return CONTROLLER_STRUCTURES[structureType][rcl] || 0;
-}
-
-function countExisting(room, structureType) {
-
-    const built = room.find(FIND_STRUCTURES, {
-        filter: s => s.structureType === structureType
-    }).length;
-
-    const sites = room.find(FIND_CONSTRUCTION_SITES, {
-        filter: s => s.structureType === structureType
-    }).length;
-
-    return built + sites;
-}
-
-function buildNextStructure(room) {
-
-    const plan = room.memory.plan;
-    const rcl = room.controller.level;
-
-    for (const structureType in plan) {
-
-        const allowed = getAllowed(structureType, rcl);
-        const existing = countExisting(room, structureType);
-
-        if (existing >= allowed) continue;
-
-        const candidates = plan[structureType];
-
-        for (const pos of candidates) {
-
-            const occupied =
-                room.lookForAt(LOOK_STRUCTURES, pos.x, pos.y).length ||
-                room.lookForAt(LOOK_CONSTRUCTION_SITES, pos.x, pos.y).length;
-
-            if (occupied) continue;
-
-            room.createConstructionSite(
-                pos.x,
-                pos.y,
-                structureType
-            );
-
-            return true;
-        }
-    }
-
-    return false;
 }
 
 function buildPlanningMatrix(room) {
@@ -789,29 +773,39 @@ function buildPlanningMatrix(room) {
         }
     }
 
-    for (const type in plan.structures) {
+    const blockingTypes = new Set([
+        STRUCTURE_EXTENSION,
+        STRUCTURE_SPAWN,
+        STRUCTURE_STORAGE,
+        STRUCTURE_TERMINAL,
+        STRUCTURE_LAB,
+        STRUCTURE_TOWER,
+        STRUCTURE_POWER_SPAWN,
+        STRUCTURE_NUKER,
+        "workPos"
+    ]);
 
-        const tiles = plan.structures[type];
+    for (const key in plan.occupied) {
 
-        for (const t of tiles) {
+        const [x, y] = key.split(":").map(Number);
 
-            if (type === STRUCTURE_ROAD || type === "road") {
-                matrix.set(t.x, t.y, 1);
-                continue;
-            }
+        const occupiedTypes = plan.occupied[key];
 
-            // structures bloquantes
-            if (
-                type === "extension" ||
-                type === "spawn" ||
-                type === "storage" ||
-                type === "terminal" ||
-                type === "lab" ||
-                type === "tower" ||
-                type === "powerSpawn" ||
-                type === "nuker"
-            ) {
-                matrix.set(t.x, t.y, 255);
+        // roads stay cheap
+        if (
+            occupiedTypes.includes(STRUCTURE_ROAD) ||
+            occupiedTypes.includes("road")
+        ) {
+            matrix.set(x, y, 1);
+        }
+
+        // blocking tiles
+        for (const occupiedType of occupiedTypes) {
+
+            if (blockingTypes.has(occupiedType)) {
+
+                matrix.set(x, y, 255);
+                break;
             }
         }
     }
@@ -1002,53 +996,26 @@ module.exports.analyzeRoom = function(room){
 
     const mem = room.memory;
 
-    if (room.getCore() === ERR_NOT_FOUND) {
-        const core = findBestCore(room);
-        if (core) {
-            mem.corePos = {
+    if (mem.plan)
+        return
+    
+
+    const core = findBestCore(room);
+    if (core) {
+        mem.plan = {
+            corePos: {
                 x: core.x,
                 y: core.y,
-                roomName: core.roomName
-            }
-            console.log("BEST CORE:",core);
-        } else {
-            console.log("No Best Core found...");
-        }
-    }
-
-    if (!mem.plan) {
-        const core = room.getCore();
-
-        mem.plan = {
-            mandatory: {
-                spawn: [],
-                extension: [],
-                tower: [],
-                storage: [],
-                terminal: [],
-                lab: [],
-                nuker: [],
-                factory: [],
-                powerSpawn: [],
-                extractor: [],
-                observer: [],
             },
-
             structures: {},
-            optional: {
-                roads: [],
-                containers: [],
-                links: [],
-                constructedWall: [],
-                rampart: []
-            },
-            
             occupied: {},
-            structures: {},
-            skeleton: [],
-            quadrant: {}
-        };
-
-        runPlanner(room, core);        
+            spatialJob: []
+        }
+        console.log("BEST CORE:",core);
+    } else {
+        console.log("Abort analysing room. No Best Core found...");
+        return;
     }
+
+    runPlanner(room, core);
 };

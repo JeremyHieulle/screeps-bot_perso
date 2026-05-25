@@ -270,33 +270,21 @@ function buildRoads(room) {
 
 module.exports = {
     run(room) {
+
+        if (!room.controller?.my) 
+            return;
+        
         const mem = room.memory;
-
-        if (!room.controller?.my) return;
+        const cache = room.memory.cache
         
-        if ( !mem.pathTo ) {
-            mem.pathTo = {};
-
-            const spawner = room.find(FIND_MY_SPAWNS)[0];
-
-            let totalLength = 0;
-            for ( let source of room.find(FIND_SOURCES)) {
-
-                const path = spawner.pos.findPathTo(source);
-
-                totalLength += path.length;
-
-                mem.pathTo[source.id] = { serial: Room.serializePath(path), len: path.length };
-            }
-            mem.haulSourcesLength = totalLength;
+        if (!cache || Game.time % 500 === 0) {
+            room.buildCache();
+        }
+            
+        if (Game.time % 5 === 0) {
+            room.updateCache();
         }
         
-        if (!mem.requested.upgrader) mem.requested.upgrader = 1;
-
-        if ( Game.time % 100 === 0 ) {
-            mem.requested['hauler'] = 1 + Math.round(mem.haulSourcesLength * 2 * 20 / 600);
-        }
-
         // Spawn demand supply
         room.spawnCreepsNeeded();
 
@@ -318,13 +306,14 @@ module.exports = {
                 if ( replacement ) { replacement.memory.replaces = creep.name }
             }
         }
+        
+        mem.state ??= 'planner'
 
         if (mem.state === 'planner') {
             heatmap.runHeatmap(room);
-            if (Game.time % 25 === 0) {
-                buildRoads(room);
-            }
-            buildNextStructure(room);
+            if (Game.time % 25 === 0) buildRoads(room);
+            if (Game.time % 10 === 0) buildNextStructure(room);
+            
         }
         
         visual.run(room);

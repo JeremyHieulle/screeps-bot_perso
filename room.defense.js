@@ -25,9 +25,7 @@ module.exports = {
         mem.defense.state = hostiles.length > 0 ? 1 : 0;
         mem.defense.padding = mem.defense.state ? 0 : 3;
 
-        const towers = room.find(FIND_STRUCTURES, {
-            filter: s => s.structureType === STRUCTURE_TOWER
-        });
+        const towers = room.getCached("structure", STRUCTURE_TOWER)
 
         if ( hostiles.length === 0 ) {
             const repairs = room.find(FIND_STRUCTURES, {
@@ -39,7 +37,9 @@ module.exports = {
             if ( repairs.length > 0 ) {
                 const structure = repairs[0];
                 const tower = structure.pos.findClosestByRange(towers);
-                tower.repair(structure);
+                if ( tower ) {
+                    tower.repair(structure);
+                }
             }
         }
 

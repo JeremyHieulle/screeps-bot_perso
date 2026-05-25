@@ -1,233 +1,274 @@
+function update(room) {
+
+    const mem = room.memory;
+
+    if (!mem.jobs) return;
+
+    for (const jobId in mem.jobs) {
+        // ==============================
+        // 1. INITIALISATION OU CLEAR DU JOB
+        // ==============================
+
+        const job = mem.jobs[jobId];
+        const obj = Game.getObjectById(job.originId);
+        
+        if (!job || !obj) {
+            delete mem.jobs[jobId];
+            continue;
+        }
+
+
+        // ==============================
+        // 2. LOGIQUE METIER
+        // ==============================
+
+        if (job.type === 'pickup') {
+            if ( obj.amount > 0 ) job.amount = obj.amount;
+            else delete mem.jobs[jobId];
+        }
+
+        // --- new
+        if (job.type === 'refill') {
+            const amount = obj.store.getFreeCapacity(RESOURCE_ENERGY);
+            if (amount > 0) job.amount = amount;
+            else delete mem.jobs[jobId];
+        }
+
+        // --- legacy
+        if (job.type === 'haul') {
+            const amount = obj.store.getFreeCapacity(RESOURCE_ENERGY);
+            if (amount > 0) job.amount = amount;
+            else delete mem.jobs[jobId];
+        }
+
+        if (job.type === 'repair') {
+            const damage = obj.hitsMax - obj.hits;
+            if (damage > 0) job.amount = damage;
+            else delete mem.jobs[jobId];
+        }
+
+        // --- legacy
+        if (job.type === 'harvest' && obj instanceof Mineral) {
+            const amount = obj.mineralAmount
+            if (amount > 0) job.amount = amount
+            else delete mem.jobs[jobId];
+        }
+
+        if (job.type === 'withdraw') {
+            let cancel = 0;
+            for (resourceType in obj.store) {
+                if ( obj.store[resourceType] < 10 ) cancel = 1
+            }
+            if ( cancel === 1 ) delete mem.jobs[jobId]
+        }
+
+        // ==============================
+        // 3. MAJ DES ASSIGNATIONS
+        // ==============================
+
+        const creep = Game.creeps[job.assigned];
+
+        if (!creep || job.id !== creep.memory.jobId) {
+            job.assigned = null;
+        }
+
+    }
+}
+
+function createJob(room, type, originId, opts) {
+
+    const mem = room.memory;
+
+    const obj = Game.getObjectById(originId)
+    const jobId = `${type}_${originId}`
+
+    if (!mem.jobs[jobId]) {
+
+        mem.jobs[jobId] = {
+            id: jobId,
+            type: type,
+            originId: originId,
+            assigned: null,
+            ...opts
+        };
+        return OK
+    } else {
+        return ERR_BUSY
+    }
+}
+
 module.exports = {
-    init: function(room) {
-
-        const mem = room.memory;
-
-        mem.jobs ??= {};
-
-        const sources = room.find(FIND_SOURCES);
-
-        for (const source of sources) {
-
-            const jobId = "harvest_" + source.id;
-
-            this.createJob(room, jobId, {
-                type: "harvest",
-                originId: source.id,
-                pos: {
-                    x: source.pos.x,
-                    y: source.pos.y,
-                    roomName: room.name
-                }
-            })
-        }
-
-        const controller = room.controller;
-
-        const jobId = "upgrade_" + controller.id;
-
-        this.createJob(room, jobId, {
-            type: "upgrade",
-            originId: controller.id,
-            pos: {
-                x: controller.pos.x,
-                y: controller.pos.y,
-                roomName: room.name
-            }
-        })
-
-    },
-
-    update(room) {
-
-        const mem = room.memory;
-        if (!mem.jobs) return;
-
-        for (const jobId in mem.jobs) {
-
-
-            const job = mem.jobs[jobId];
-            const obj = Game.getObjectById(job.originId);
-
-            if (!job || !obj) {
-                delete mem.jobs[jobId];
-                continue;
-            }
-
-            const creep = Game.creeps[job.assigned];
-
-
-
-            // === logique métier ===
-            if (job.type === 'pickup') {
-                if ( obj.amount > 0 ) job.amount = obj.amount;
-                else delete mem.jobs[jobId];
-            }
-
-            if (job.type === 'haul') {
-                const amount = obj.store.getFreeCapacity(RESOURCE_ENERGY);
-                if (amount > 0) job.amount = amount;
-                else delete mem.jobs[jobId];
-            }
-
-            if (job.type === 'repair') {
-                const damage = obj.hitsMax - obj.hits;
-                // console.log('damage : ' + damage);
-                if (damage > 0) job.amount = damage;
-                else delete mem.jobs[jobId];
-            }
-
-            if (job.type === 'harvest' && obj instanceof Mineral) {
-                const amount = obj.mineralAmount
-                if (amount > 0) job.amount = amount
-                else delete mem.jobs[jobId];
-            }
-
-            if (job.type === 'withdraw') {
-                let type = 0;
-                for (resourceType in obj.store) {
-                    type++
-                }
-                if ( type === 0 ) delete mem.jobs[jobId]
-                // const amount = obj.store
-            }
-            if (!creep || job.id !== creep.memory.jobId) {
-                job.assigned = null;
-            }
-        }
-    },
 
     run: function(room) {
 
         const mem = room.memory;
-
-        this.update(room);
         mem.jobs ??= {};
 
-        if (mem.hubLinkId) {
-            const hub = Game.getObjectById(mem.hubLinkId);
-    
-            if ( hub && hub.store[RESOURCE_ENERGY] > 100) {
-                const jobId = `withdraw_${hub.id}`;
-    
-                this.createJob(room, jobId, {
-                    type: 'withdraw',
-                    originId: hub.id,
-                    pos: hub.pos,
-                    amount: hub.store.getUsedCapacity(RESOURCE_ENERGY)
+        update(room);
+
+
+        // ==============================
+        // 1. JOB SOURCE/CONTROLLER/MINERAL
+        // ==============================
+
+        for ( const spatialJob of mem.plan.spatialJob) {
+            let type = null;
+            switch ( spatialJob.tag ) {
+                case "source": type = "harvest"; break;
+                case "controller": type = "upgrade"; break;
+                case "mineral": type = "harvest";  break;
+            }
+
+            if ( spatialJob.tag === 'mineral' && !mem.cache?.structures?.extractor ) continue
+
+            const originId = spatialJob.targetId;
+            const opts = { workPos: spatialJob.workPos }
+
+            createJob(room, type, originId, opts);
+        }
+
+
+        // ==============================
+        // 2. JOB CONTAINERS
+        // ==============================
+
+        const cachedContainers = room.getCached("structure", STRUCTURE_CONTAINER);
+
+        for (const container of cachedContainers) {
+
+            const meta = room.memory.cache.structureMeta?.[container.id];
+            if (!meta) continue;
+
+            const store = container.store;
+
+            if (meta.tag === 'controller' && store[RESOURCE_ENERGY] < 1000) {
+
+                createJob(room, 'haul', container.id, {
+                    priority: 50
                 });
             }
-        } else {
-            const hubLink = room.lookForAt(LOOK_STRUCTURES, mem.corePos.x, mem.corePos.y - 1, {
-                filter: s => s.structureType === STRUCTURE_LINK
-            });
 
-            if (hubLink) mem.hubLinkId = hubLink[0].id
-        }
 
-        const tombstones = room.find(FIND_TOMBSTONES, {
-            filter: (tomb) => {
-                return tomb.store[RESOURCE_HYDROGEN] > 0 ||
-                tomb.store[RESOURCE_OXYGEN] > 0 ||
-                tomb.store[RESOURCE_UTRIUM] > 0 ||
-                tomb.store[RESOURCE_LEMERGIUM] > 0 ||
-                tomb.store[RESOURCE_KEANIUM] > 0 ||
-                tomb.store[RESOURCE_ZYNTHIUM] > 0 ||
-                tomb.store[RESOURCE_CATALYST] > 0 ||
-                tomb.store[RESOURCE_GHODIUM] > 0 ||
-                tomb.store[RESOURCE_SILICON] > 0 ||
-                tomb.store[RESOURCE_METAL] > 0 ||
-                tomb.store[RESOURCE_BIOMASS] > 0 ||
-                tomb.store[RESOURCE_MIST] > 0 ||
-                tomb.store[RESOURCE_HYDROXIDE] > 0 ||
-                tomb.store[RESOURCE_ZYNTHIUM_KEANITE] > 0 ||
-                tomb.store[RESOURCE_UTRIUM_LEMERGITE] > 0 ||
-                tomb.store[RESOURCE_UTRIUM_HYDRIDE] > 0 ||
-                tomb.store[RESOURCE_UTRIUM_OXIDE] > 0 ||
-                tomb.store[RESOURCE_KEANIUM_HYDRIDE] > 0 ||
-                tomb.store[RESOURCE_KEANIUM_OXIDE] > 0 ||
-                tomb.store[RESOURCE_LEMERGIUM_HYDRIDE] > 0 ||
-                tomb.store[RESOURCE_LEMERGIUM_OXIDE] > 0 ||
-                tomb.store[RESOURCE_ZYNTHIUM_HYDRIDE] > 0 ||
-                tomb.store[RESOURCE_ZYNTHIUM_OXIDE] > 0 ||
-                tomb.store[RESOURCE_GHODIUM_HYDRIDE] > 0 ||
-                tomb.store[RESOURCE_GHODIUM_OXIDE] > 0
+            if (meta.tag === 'source') {
+
+                const amount = store[RESOURCE_ENERGY];
+
+                if (amount > 50) {
+                    createJob(room, 'withdraw', container.id, {
+                        resourceType: RESOURCE_ENERGY,
+                        amount
+                    });
+                }
             }
-        });
 
-        for (const tomb of tombstones) {
-            const jobId = `withdraw_${tomb.id}`;
 
-            this.createJob(room, jobId, {
-                type: 'withdraw',
-                originId: tomb.id,
-                pos: tomb.pos,
-            });
+            if (meta.tag === 'mineral') {
+
+                const resourceType = meta.mineral;
+                const amount = store[resourceType];
+
+                if (amount > 0) {
+                    createJob(room, 'withdraw', container.id, {
+                        resourceType,
+                        amount
+                    });
+                }
+            }
         }
 
-        const hauls = room.find(FIND_STRUCTURES, {
-            filter: s =>
-                    
-                (
-                    s.structureType === STRUCTURE_SPAWN ||
-                    s.structureType === STRUCTURE_EXTENSION
-                ) &&  s.store.getFreeCapacity(RESOURCE_ENERGY) > 0 ||
-                (
-                    s.structureType === STRUCTURE_TOWER ||
-                    // s.structureType === STRUCTURE_STORAGE ||
-                    (
-                        s.structureType === STRUCTURE_CONTAINER &&
-                        s.pos.x === room.memory.upgradeContainerPos.x &&
-                        s.pos.y === room.memory.upgradeContainerPos.y
-                    )
-                ) && s.store.getFreeCapacity(RESOURCE_ENERGY) > 300
-        });
 
-        for (const haul of hauls) {
+        // ==============================
+        // 2. REFILL SPAWN + EXTENSIONS
+        // ==============================
 
-            const jobId = `haul_${haul.id}`;
+        const cachedSpawns = room.getCached("structure", STRUCTURE_SPAWN);
 
-            this.createJob(room, jobId, {
-                type: 'haul',
-                originId: haul.id,
-                pos: haul.pos,
-                amount: haul.store.getFreeCapacity(RESOURCE_ENERGY)
-            });
+        for ( const spawn of cachedSpawns ) {
+            if ( spawn && spawn.store.getFreeCapacity(RESOURCE_ENERGY) > 0 ) {
+
+                const type = 'haul'
+                const amount = spawn.store.getFreeCapacity(RESOURCE_ENERGY)
+                createJob(room, type, spawn.id, { amount, priority: 100 })
+            }
         }
 
-        const withdrawMinerals = room.find(FIND_MINERALS)
-        for (const mineral of withdrawMinerals) {
-            const containers = mineral.pos.findInRange(FIND_STRUCTURES, 1, {
-                filter: s => s.structureType === STRUCTURE_CONTAINER
-            });
+        const cachedExtensions = room.getCached("structure", STRUCTURE_EXTENSION);
 
-            for ( const container of containers ) {
-                for ( const resourceType in container.store ) {
-                    if (container.store[resourceType] > 500) {
-                        const jobId = `withdraw_${resourceType}_${container.id}`
+        for ( const extension of cachedExtensions ) {
 
-                        this.createJob(room, jobId, {
-                            type: 'withdraw',
-                            originId: container.id,
+            if ( extension && extension.store.getFreeCapacity(RESOURCE_ENERGY) > 0 ) {
+                const type = 'haul'
+                const amount = extension.store.getFreeCapacity(RESOURCE_ENERGY)
+                createJob(room, type, extension.id, { amount, priority: 100 })
+            }
+
+        }
+        
+        const cachedTowers = room.getCached("structure", STRUCTURE_TOWER);
+
+        for ( const tower of cachedTowers ) {
+
+            if ( tower && tower.store.getFreeCapacity(RESOURCE_ENERGY) > 100 ) {
+                const type = 'haul'
+                const amount = tower.store.getFreeCapacity(RESOURCE_ENERGY)
+                createJob(room, type, tower.id, { amount })
+            }
+
+        }
+        
+        const cachedCoreContainer = room.findByTag("core", STRUCTURE_CONTAINER)
+        if (cachedCoreContainer && cachedCoreContainer.store.getFreeCapacity() > 1000) {
+            const type = 'haul'
+            const amount = cachedCoreContainer.store.getFreeCapacity(RESOURCE_ENERGY)
+            createJob(room, type, cachedCoreContainer.id, { amount })
+        }
+
+        // ==============================
+        // 3. OTHER STRUCTURES
+        // ==============================
+
+        const cachedLinks = room.getCached("structure", STRUCTURE_LINK)
+
+        for ( const link of cachedLinks ) {
+
+            const meta = room.memory.cache.structureMeta?.[link.id];
+            if (!meta) continue;
+
+            if ( link && meta.tag === 'hub' ) {
+                for ( const resourceType in link.store ) {
+
+                    const amount = link.store[resourceType]
+
+                    if ( link.store[resourceType] > 0 ) {
+                        createJob(room, 'withdraw', link.id, {
                             resourceType: resourceType,
-                            pos: container.pos,
-                            amount: container.store[resourceType]
-                        });
+                            amount: link[resourceType]
+                        }); 
                     }
                 }
             }
         }
 
+
+        const tombstones = room.find(FIND_TOMBSTONES);
+
+        for (const tomb of tombstones) {
+            for ( const resourceType in tomb.store ) {
+                if ( tomb[resourceType] > 0 ) {
+
+                    createJob(room, 'withdraw', tomb.id, {
+                        resourceType: resourceType,
+                        amount: tomb[resourceType]
+                    });
+                }
+            }
+        }
+
+
         const drops = room.find(FIND_DROPPED_RESOURCES);
         
         for (const drop of drops) {
-
-            const jobId = `pickup_${drop.id}`;
-
-            this.createJob(room, jobId, {
-                type: 'pickup',
-                originId: drop.id,
-                pos: drop.pos,
+            createJob(room, 'pickup', drop.id, {
                 amount: drop.amount
             });
         }
@@ -235,13 +276,7 @@ module.exports = {
         const builds = room.find(FIND_CONSTRUCTION_SITES);
 
         for (const build of builds) {
-
-            const jobId = `build_${build.id}`;
-
-            this.createJob(room, jobId, {
-                type: 'build',
-                originId: build.id,
-                pos: build.pos,
+            createJob(room, 'build', build.id, {
                 amount: build.progressTotal - build.progress
             });
         }
@@ -254,49 +289,9 @@ module.exports = {
 			});
 
         for (const repair of repairs) {
-
-            const jobId = `repair_${repair.id}`;
-
-            this.createJob(room, jobId, {
-                type: 'repair',
-                originId: repair.id,
-                pos: repair.pos,
+            createJob(room, 'repair', repair.id, {
                 amount: repair.hitsMax - repair.hits
             });
-        }
-
-        const minerals = room.find(FIND_MINERALS, {
-                filter: (mineral) => {
-                    return mineral.mineralAmount > 0
-                }
-            });
-
-        for (const mineral of minerals) {
-            if (room.hasExtractor(mineral)) {
-
-                const jobId = `harvest_${mineral.id}`;
-
-                this.createJob(room, jobId, {
-                    type: 'harvest',
-                    originId: mineral.id,
-                    pos: mineral.pos,
-                    amount: mineral.mineralAmount
-                });
-            }
-        }
-    },
-
-    createJob(room, id, data) {
-        const mem = room.memory;
-
-        mem.jobs ??= {};
-
-        if (!mem.jobs[id]) {
-            mem.jobs[id] = {
-                id,
-                assigned: null,
-                ...data
-            };
         }
     }
 }

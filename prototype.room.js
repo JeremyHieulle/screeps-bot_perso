@@ -1,11 +1,62 @@
 const { buildBody } = require('spawning.bodyBuilder');
+const cache = require('room.cache');
+
+Room.prototype.buildCache = function() {
+    cache.buildRoomCache(this);
+}
+
+Room.prototype.updateCache = function() {
+    cache.updateRoomCache(this);
+}
+
+Room.prototype.getCached = function(category, item) {
+
+    this._cached ??= {};
+    this._cached[category] ??= {};
+
+    if (this._cached[category][item]) {
+        return this._cached[category][item];
+    }
+
+    const ids = this.memory.cache?.[category]?.[item] || [];
+
+    const objects = [];
+
+    for (const id of ids) {
+
+        const obj = Game.getObjectById(id);
+
+        if (obj) {
+            objects.push(obj);
+        }
+    }
+
+    // runtime cache
+    this._cached[category][item] = objects;
+
+    return objects;
+};
+
+Room.prototype.getCache = function(category, item) {
+
+    this._cache ??= {};
+    this._cache[category] ??= {};
+
+    if (this._cache[category][item]) {
+        return this._cache[category][item];
+    }
+
+    const ids = this.memory.cache?.[category]?.[item] || [];
+
+    // runtime cache
+    this._cache[category][item] = ids;
+
+    return ids;
+};
 
 Room.prototype.hasExtractor = function(mineral) {
-    const extractor = this.getObjectByPos(
-        mineral.pos,
-        LOOK_STRUCTURES,
-        o => o.structureType === STRUCTURE_EXTRACTOR
-    )
+
+    const extractor = this.getCached(LOOK_STRUCTURES, STRUCTURE_EXTRACTOR)    
     
     if (extractor) return true;
 
@@ -13,7 +64,6 @@ Room.prototype.hasExtractor = function(mineral) {
 }
 
 Room.prototype.debugPlan = function(plan) {
-
     const v = this.visual;
 
     const colorMap = {
@@ -71,18 +121,19 @@ Room.prototype.debugPlan = function(plan) {
 };
 
 Room.prototype.getCore = function () {
-    const mem = this.memory;
+    const mem = this.memory.plan;
 
     if (!mem.corePos) {
-        console.log(`${this}.getCore() === ERR_NOT_FOUND`);
+        console.log(`${this} Core not found, need room.analyzer`);
         return ERR_NOT_FOUND;
     }
 
     const core = new RoomPosition(
         mem.corePos.x,
         mem.corePos.y,
-        mem.corePos.roomName
+        this.name
     )
+    
     return core
 }
 
@@ -115,7 +166,6 @@ Room.prototype.getObjectByPos = function (...args) {
 };
 
 Room.prototype.requestJob = function (creep) {
-
     creep.memory.jobId ??= null;
 
     const role = creep.memory.role;
@@ -127,27 +177,68 @@ Room.prototype.requestJob = function (creep) {
         exclude.add('withdraw');
         exclude.add('pickup');
     }
-    
-    const jobs = Object.values(this.memory.jobs)
-        .filter(job =>
-            jobTypes.includes(job.type) &&
-            !exclude.has(job.type) &&
-            !job.assigned
-        )
-        .sort((a, b) =>
-            creep.pos.getRangeTo(a.pos.x, a.pos.y) -
-            creep.pos.getRangeTo(b.pos.x, b.pos.y)
-        );
 
+    
+    const corePos = this.memory.plan.corePos
+    const jobs = Object.values(this.memory.jobs)
+        .filter(job => {
+
+            if (!jobTypes.includes(job.type)) return false;
+            if (exclude.has(job.type)) return false;
+            if (job.assigned) return false;
+
+            // dirty anti-core pickup for haulers
+            if (
+                role === 'hauler' &&
+                job.type === 'pickup'
+            ) {
+                const target = Game.getObjectById(job.originId);
+
+                if (
+                    target &&
+                    corePos &&
+                    target.pos.getRangeTo(corePos.x, corePos.y) <= 2
+                ) {
+                    return false;
+                }
+            }
+
+            return true;
+        })
+        .map(job => {
+            const target = Game.getObjectById(job.originId);
+
+            if (!target) return null;
+
+            return {
+                ...job,
+                target
+            };
+        })
+        .filter(Boolean)
+        .sort((a, b) => {
+
+            const prio =
+                (b.priority || 0) -
+                (a.priority || 0);
+
+            if (prio !== 0) return prio;
+
+            return (
+                creep.pos.getRangeTo(a.target) -
+                creep.pos.getRangeTo(b.target)
+            );
+        });
+    
     if (!jobs.length) return false;
 
-    const job = jobs[0];
+    const job = this.memory.jobs[jobs[0].id];
 
     // réservation immédiate
     creep.memory.jobId = job.id;
     job.assigned = creep.name;
     job.assignedTick = Game.time;
-    
+
     return true;
 };
 
@@ -242,16 +333,19 @@ Room.prototype.spawnCreepsNeeded = function() {
 
     const creeps = this.find(FIND_MY_CREEPS);
 
-    // Comptage des creeps existants
+    // =============================
+    // COUNT EXISTING + SPAWNING
+    // =============================
     const creepCount = {};
+
     for (const creep of creeps) {
-        if ( creep && creep.ticksToLive >= 100 ) { 
+        if (creep && creep.ticksToLive >= 100) {
             creepCount[creep.memory.role] ??= 0;
-            creepCount[creep.memory.role]++
+            creepCount[creep.memory.role]++;
         }
     }
 
-    const spawn = this.find(FIND_MY_SPAWNS)[0]; 
+    const spawn = this.find(FIND_MY_SPAWNS)[0];
     if (spawn?.spawning) {
         const spawningName = spawn.spawning.name;
         const role = Memory.creeps[spawningName]?.role;
@@ -262,60 +356,149 @@ Room.prototype.spawnCreepsNeeded = function() {
         }
     }
 
+    // =============================
+    // QUEUED COUNT
+    // =============================
+    const queued = {};
+
+    for (const q of (this.memory.spawnQueue || [])) {
+
+        if (q.priority > 1) continue;
+
+        queued[q.role] ??= 0;
+        queued[q.role]++;
+    }
+
+    const total = (role) =>
+        (creepCount[role] ?? 0) +
+        (queued[role] ?? 0);
+
+    // =============================
+    // BOOTSTRAP PHASE
+    // =============================
+    if (total('harvester') === 0) {
+        this.spawnCreepForRole('harvester', 300, { priority: 0 });
+        return;
+    }
+
+    if (total('hauler') < 2) {
+        this.spawnCreepForRole('hauler', 300, { priority: 1 });
+        return;
+    }
+
+    // =============================
+    // HARVESTER NEED
+    // =============================
+    const harvesterNeed = this.getCache("logistics", "harvesterNeed");
+    const haulerNeed = this.getCache("logistics", "haulerNeed");
+
     const sources = this.find(FIND_SOURCES);
+
     const extractor = this.find(FIND_STRUCTURES, {
         filter: s => s.structureType === STRUCTURE_EXTRACTOR
     });
+
     const exhausted_mineral = this.find(FIND_MINERALS, {
-        filter: m => m.mineralAmount === 0 });
-
-    const mineralHarvester = (( extractor.length - exhausted_mineral ) > 0) ? extractor.length - exhausted_mineral : 0
-    const harvesterNeeded = sources.length + mineralHarvester;
-    if ( this.memory.requested['harvester'] !== harvesterNeeded ) this.memory.requested['harvester'] = harvesterNeeded;
-
-
-    const workingPower = Math.floor(this.energyCapacityAvailable / 200);
-
-    const totalBuild = this.find(FIND_CONSTRUCTION_SITES).reduce(
-        (sum, building) => sum + building.progressTotal - building.progress, 0);
-    const totalRepair = this.find(FIND_STRUCTURES).reduce(
-        (sum, building) => sum + building.hitsMax - building.hits, 0);
-    const urgentRepair = this.find(FIND_STRUCTURES, {
-        filter: s => s.hits < s.hitsMax / 2 &&
-                     s.structureType !== STRUCTURE_WALL
+        filter: m => m.mineralAmount === 0
     });
 
-    // const buildersNeeded = (urgentRepair.length > 0 || totalBuild > 0) ? Math.min(2, Math.ceil(totalRepair / 200000 + totalBuild / 100000)) : 0;
-    let buildersNeeded = 0;
-    const sites = this.find(FIND_CONSTRUCTION_SITES)
-    buildersNeeded = Math.min(sites.length, 1);
-    if ( urgentRepair.length > 0 ) buildersNeeded++
+    const mineralHarvester =
+        ((extractor.length - exhausted_mineral.length) > 0)
+            ? (extractor.length - exhausted_mineral.length)
+            : 0;
 
-    if ( this.memory.requested['builder'] !== buildersNeeded ) this.memory.requested['builder'] = buildersNeeded
+    const harvesterNeeded = sources.length + mineralHarvester;
 
-    if ( ( creepCount['harvester'] ??= 0 ) < this.memory.requested['harvester'] ) this.spawnCreepForRole('harvester');
+    if (this.memory.requested['harvester'] !== harvesterNeeded) {
+        this.memory.requested['harvester'] = harvesterNeeded;
+    }
 
-    if ( ( creepCount['hauler'] ??= 0 ) < this.memory.requested['hauler'] ) this.spawnCreepForRole('hauler');
+    if (total('harvester') < harvesterNeed) {
+        this.spawnCreepForRole('harvester');
+    }
 
-    if ( ( creepCount['upgrader'] ??= 0 ) < this.memory.requested['upgrader'] ) this.spawnCreepForRole('upgrader');
+    // =============================
+    // HAULER STRESS
+    // =============================
+    const droppedEnergy = this.find(FIND_DROPPED_RESOURCES)
+        .reduce((sum, r) => sum + r.amount, 0);
 
-    if ( ( creepCount['builder'] ??= 0 ) < this.memory.requested['builder'] ) this.spawnCreepForRole('builder');
+    const haulStress = droppedEnergy / 1000;
 
-    // this.memory.requested['drainer'] ??= 0
-    // this.memory.requested['drainerHealer'] ??= 0
-    
-    // if ( ( creepCount['drainerHealer'] ??= 0 ) < this.memory.requested['drainerHealer'] ) this.spawnCreepForRole('drainerHealer');
+    const requestedHauler = Math.max(
+        haulerNeed,
+        Math.ceil(haulStress)
+    );
 
-    // if ( ( creepCount['drainer'] ??= 0 ) < this.memory.requested['drainer'] ) this.spawnCreepForRole('drainer');
+    if (total('hauler') < requestedHauler) {
+        this.spawnCreepForRole('hauler');
+    }
 
-}
+    // =============================
+    // BUILDER / UPGRADER
+    // =============================
+    const builderMax = this.getCache("logistics", "builderMax");
+    const upgraderMax = this.getCache("logistics", "upgraderMax");
 
-Room.prototype.spawnCreepForRole = function(role, max, opts) {
+    let upgraderMaxCost = 200;
+    let requestedUpgrader = 0;
+    let requestedBuilder = 0;
+
+    const sites = this.find(FIND_CONSTRUCTION_SITES, {
+        filter: s => s.structureType !== STRUCTURE_ROAD
+    });
+
+    const storage = this.getCached("structure", STRUCTURE_STORAGE);
+
+    if (( storage.length === 0 ) || ( storage.length > 0 && storage[0].store[RESOURCE_ENERGY] > 500000 )) {
+        upgraderMaxCost = this.energyCapacityAvailable;
+    }
+
+    const urgentRepair = this.find(FIND_STRUCTURES, {
+        filter: s =>
+            s.hits < s.hitsMax / 2 &&
+            s.structureType !== STRUCTURE_WALL
+    });
+
+    const roadSites = this.find(FIND_CONSTRUCTION_SITES, {
+        filter: s => s.structureType === STRUCTURE_ROAD
+    });
+
+    // =============================
+    // LOGIC BUILDER / UPGRADER
+    // =============================
+    if (sites.length > 0) {
+        requestedUpgrader = 1;
+        requestedBuilder = builderMax;
+    } else {
+        requestedUpgrader = (this.energyCapacityAvailable > 1000) ? 1 : upgraderMax;
+        requestedBuilder = 0;
+    }
+
+    if (roadSites.length > 0 || urgentRepair.length > 0) {
+        requestedBuilder = Math.max(requestedBuilder, 1);
+        requestedUpgrader = Math.min(requestedUpgrader, 1);
+    }
+
+    if (total('upgrader') < requestedUpgrader) {
+        this.spawnCreepForRole('upgrader', upgraderMaxCost);
+    }
+
+    if (total('builder') < requestedBuilder) {
+        this.spawnCreepForRole('builder');
+    }
+};
+
+Room.prototype.spawnCreepForRole = function(role, max, opts = {}) {
 
     this.memory.spawnQueue ??= [];
 
+    const priority = opts.priority ?? this.getRolePriority(role);
+
     const exists = this.memory.spawnQueue.some(
-        r => r.role === role
+        r =>
+            r.role === role &&
+            r.priority === priority
     );
 
     if (exists) return;
@@ -340,37 +523,17 @@ Room.prototype.spawnCreepForRole = function(role, max, opts) {
 
     if (!body || body.length === 0) return ERR_NOT_ENOUGH_ENERGY;
 
-    const name = `${role}_${Game.time}`;
-    const pushMemory = opts || {}
+    const name = `${role}_${Game.time}_${Math.random().toString(36).slice(2,4)}`;
+    const pushMemory = opts.memory || {};
 
     console.log(`${this} ${role} added to spawnQueue`);
 
     this.memory.spawnQueue.push({
-        priority: this.getRolePriority(role),
+        priority,
         role,
         body,
-        name: `${role}_${Game.time}_${Math.random().toString(36).slice(2,4)}`,
+        name,
         pushMemory
-    });
-};
-
-// Spawner un creep pour un job donné
-Room.prototype.spawnCreepForRole_old = function(role) {
-    this.memory.spawnQueue ??= [];
-
-    const exists = this.memory.spawnQueue.some(
-        r => r.role === role
-    );
-
-    if (exists) return;
-
-    console.log(`${this} ${role} added to spawnQueue`);
-
-    this.memory.spawnQueue.push({
-        priority: this.getRolePriority(role),
-        role,
-        name: `${role}_${Game.time}_${Math.random().toString(36).slice(2,4)}`,
-
     });
 };
 
@@ -385,7 +548,7 @@ Room.prototype.getRoleForJob = function (job) {
         case 'repair': return 'builder';
         case 'withdraw': return 'hauler';
         default: false;
-    }  
+    }
 }
 
 Room.prototype.getJobTypeForRole = function (role) {
@@ -415,141 +578,30 @@ Room.prototype.getJobPriority = function(job) {
 Room.prototype.getRolePriority = function(role) {
 
     switch(role) {
-        case 'harvester': return 1;
-        case 'hauler': return 2;
-        case 'upgrader': return 3;
-        case 'builder': return 5;
-        default: return 10;
+        case 'harvester': return 10;
+        case 'hauler': return 20;
+        case 'upgrader': return 30;
+        case 'builder': return 50;
+        default: return 100;
     }
 };
 
-Room.prototype.findUpgradeContainerSite = function() {
-    const mem = this.memory
-    
-    if ( !mem.upgradeContainerPos ) return false;
+Room.prototype.findByTag = function (tag, structureType = null) {
 
-    const upgradeContainerSite = this.getObjectByPos(
-        mem.upgradeContainerPos.x,
-        mem.upgradeContainerPos.y,
-        LOOK_CONSTRUCTION_SITES,
-        o => o.structureType === STRUCTURE_CONTAINER
-    )
+    const meta = this.memory.cache?.structureMeta;
+    if (!meta) return null;
 
-    return ( upgradeContainerSite ) ? upgradeContainerSite : false;
-}
+    for (const id in meta) {
 
-Room.prototype.findUpgradeContainer = function () {
-    const mem = this.memory
-    
-    if ( !mem.upgradeContainerPos ) return false;
+        if (meta[id].tag !== tag) continue;
 
-    const upgradeContainer = this.getObjectByPos(
-        mem.upgradeContainerPos.x,
-        mem.upgradeContainerPos.y,
-        LOOK_STRUCTURES,
-        o => o.structureType === STRUCTURE_CONTAINER
-    )
-
-    return ( upgradeContainer ) ? upgradeContainer : false;
-}
-
-Room.prototype.findCoreContainer = function () {
-    const mem = this.memory
-    
-    if ( !mem.corePos ) return false;
-
-    const upgradeContainer = this.getObjectByPos(
-        mem.corePos.x,
-        mem.corePos.y,
-        LOOK_STRUCTURES,
-        o => o.structureType === STRUCTURE_CONTAINER
-    )
-
-    return ( upgradeContainer ) ? upgradeContainer : false;
-}
-
-Room.prototype.findStorage = function () {
-
-    const cache = this.memory._structureCache?.built;
-    const plan = this.memory.plan?.structures?.storage?.[0];
-
-    let storage;
-
-    // ==============================
-    // 1. FAST PATH : ID CACHE
-    // ==============================
-    const cachedId = cache?.storage?.[0]?.id;
-    if (cachedId) {
-        storage = Game.getObjectById(cachedId);
-
-        if (storage) return storage;
-
-        // invalidate dead cache
-        cache.storage[0].id = null;
-    }
-
-    // ==============================
-    // 2. PLAN VALIDATION (pos check)
-    // ==============================
-    if (plan?.x !== undefined && plan?.y !== undefined) {
-
-        storage = this.getObjectByPos(
-            plan.x,
-            plan.y,
-            LOOK_STRUCTURES,
-            s => s.structureType === STRUCTURE_STORAGE
-        );
-
-        if (storage) {
-            cache.storage ??= [];
-
-            cache.storage[0] = {
-                id: storage.id,
-                x: plan.x,
-                y: plan.y
-            };
-
-            return storage;
+        if (structureType) {
+            const obj = Game.getObjectById(id);
+            if (!obj || obj.structureType !== structureType) continue;
         }
-    }
 
-    // ==============================
-    // 3. FALLBACK ENGINE FIND
-    // ==============================
-    storage = this.find(FIND_STRUCTURES, {
-        filter: s => s.structureType === STRUCTURE_STORAGE
-    })[0];
-
-    if (storage) {
-        cache.storage ??= [];
-
-        cache.storage[0] = {
-            id: storage.id,
-            x: storage.pos.x,
-            y: storage.pos.y
-        };
-
-        return storage;
+        return Game.getObjectById(id);
     }
 
     return null;
-};
-
-Room.prototype.findTerminal = function () {
-    const planTerminal = this.memory.plan?.structures?.terminal;
-
-    if (planTerminal) {
-        const { x, y, dep } = planTerminal[0];
-
-        const terminal = this.getObjectByPos(
-            x,
-            y,
-            LOOK_STRUCTURES,
-            s => s.structureType === STRUCTURE_TERMINAL
-        );
-
-        if (terminal) return terminal;
-    }
-
-    return false;
 };

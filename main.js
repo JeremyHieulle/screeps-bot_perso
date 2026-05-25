@@ -147,7 +147,7 @@ module.exports.loop = function () {
 
         const mem = room.memory;
 
-        if (!mem.corePos || !mem.plan) {
+        if (!mem.plan?.corePos) {
             analyzer.analyzeRoom(room)
         } else {
             // room.debugPlan(mem.plan);
@@ -157,12 +157,7 @@ module.exports.loop = function () {
         const roomcpu = getCpu();
         roomManager.run(room);
         printCpu(roomcpu, room, 'roomManager');
-
-        if (!room.memory.jobsInitialized) {
-            jobManager.init(room);
-            room.memory.jobsInitialized = true;
-        }
-
+        
         const econcpu = getCpu();
         economyManager.run(room);
         printCpu(econcpu, room, 'economyManager');

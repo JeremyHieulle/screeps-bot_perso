@@ -1,9 +1,29 @@
 module.exports = {
 
     run(creep, job) {
-        
         if (creep.room.memory.logistics.hasHauler) {
             if (!job) {
+                const target = creep.memory.sourceId;
+                if (target) {
+                    const source = Game.getObjectById(target);
+                    creep.myHarvest(source)
+                    return
+                } else {
+                    const sources = creep.room.find(FIND_SOURCES)
+                        .sort((a, b) => {
+
+                            const aAssigned = _.filter(Game.creeps,
+                                c => c.memory.sourceId === a.id
+                            ).length;
+
+                            const bAssigned = _.filter(Game.creeps,
+                                c => c.memory.sourceId === b.id
+                            ).length;
+
+                            return aAssigned - bAssigned;
+                        });
+                    creep.memory.sourceId = sources[0].id
+                }
                 creep.idle();
                 return;
             }
@@ -26,23 +46,8 @@ module.exports = {
             return;
         }
 
-        // Spécifité harvester avec CARRY
-        creep.memory.state ??= 'filling';
-
-        if (creep.memory.state == 'filling' && creep.store.getFreeCapacity() === 0) {
-            creep.memory.state = 'full';
-        }
-
-        if (creep.memory.state == 'full' && creep.store[RESOURCE_ENERGY] === 0) {
-            creep.memory.state = 'filling'
-        }
-
-        if (creep.memory.state === 'filling' ) {
-            const source = creep.pos.findClosestByPath(FIND_SOURCES);
-            creep.myHarvest(source);
-        }
-
-        if (creep.memory.state === 'full') {
+        creep.toggleWorkingState();
+        if (creep.memory.working ) {
             const targets = creep.room.find(FIND_STRUCTURES, {
                 filter: (structure) => {
                     return ( structure.structureType == STRUCTURE_EXTENSION
@@ -56,6 +61,9 @@ module.exports = {
                 const source = creep.pos.findClosestByPath(FIND_SOURCES);
                 creep.myHarvest(source)
             }
+        } else {
+            const source = creep.pos.findClosestByPath(FIND_SOURCES);
+            creep.myHarvest(source);
         }
     }
 };
