@@ -1,6 +1,8 @@
 require('init');
 const memoryManager = require('memory.manager');
 
+require('utils/global.functions')(global);
+const diplomacy = require('global.diplomacy');
 const roomManager = require('room.manager');
 const roomDefense = require('room.defense');
 const jobManager = require('job.manager');
@@ -16,6 +18,8 @@ const roles = {
 };
 
 const spawnerManager = require('spawner');
+
+
 
 function buildDangerMap(room) {
 
@@ -137,12 +141,21 @@ module.exports.loop = function () {
 
 
     // ==============================
+    // 0. GLOBAL IMPORTANT
+    // ==============================
+
+    diplomacy.run();
+
+
+    // ==============================
     // 1. ROOM LOGIC
     // ==============================
 
     for (let roomName in Game.rooms) {
         const room = Game.rooms[roomName];
 
+        diplomacy.damageDetector(room);
+        
         if (!room.controller?.my) continue;
 
         const mem = room.memory;
