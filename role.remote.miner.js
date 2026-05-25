@@ -6,7 +6,11 @@ module.exports = {
         // Position: 43, 19, W37S38
         const source = Game.getObjectById('5bbcaaf69099fc012e63284e');
 
-
+        if (!source) {
+            creep.moveTo(new RoomPosition(43, 18, 'W37S38'))
+            return
+        }
+        
         if ( creep.room.name === source.room.name && 
             source.energy === 0 && 
             source.ticksToRegeneration > 20 
