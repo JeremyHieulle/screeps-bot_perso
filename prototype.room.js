@@ -508,6 +508,7 @@ Room.prototype.spawnCreepForRole = function(role, max, opts = {}) {
     const energyByRole = {
         hauler: this.energyCapacityAvailable * 2 / 3,
         builder: 600,
+        upgrader: 1800,
         // remoteHauler: 1500,
         scout: 2100,
         attacker: 2100,
