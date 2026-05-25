@@ -45,7 +45,8 @@ function damageDetector(room) {
 
 function scanCreeps(room) {
 
-    room.memory._lastHits ??= { creeps: {} };
+    room.memory._lastHits ??= {};
+    room.memory._lastHits.creeps ??= {};
 
     const cache = room.memory._lastHits.creeps;
 
@@ -65,8 +66,9 @@ function scanCreeps(room) {
 
 function scanStructures(room) {
 
-    room.memory._lastHits ??= { structures: {} };
-
+    room.memory._lastHits ??= {};
+    room.memory._lastHits.structures ??= {};
+    
     const cache = room.memory._lastHits.structures;
 
     const structures = room.find(FIND_STRUCTURES);
