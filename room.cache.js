@@ -1,21 +1,3 @@
-function _getTag(room, structure) {
-    const plan = room.memory.plan;
-
-    const list = plan?.[structure.structureType];
-    if (!list) return null;
-
-    for (const planned of list) {
-        if (
-            structure.pos.x === planned.x &&
-            structure.pos.y === planned.y
-        ) {
-            return planned.tag || null;
-        }
-    }
-
-    return null;
-}
-
 function _buildStructureCache(room) {
 
     const structureCache = {
@@ -155,6 +137,38 @@ function _buildRepairCache(room) {
     return undefined;
 }
 
+function _getSourceCapacity(room) {
+
+    const sources = room.find(FIND_SOURCES);
+
+    let totalSlots = 0;
+
+    for (const source of sources) {
+
+        const terrain = room.getTerrain();
+
+        let slots = 0;
+
+        for (let dx = -1; dx <= 1; dx++) {
+            for (let dy = -1; dy <= 1; dy++) {
+
+                if (dx === 0 && dy === 0) continue;
+
+                const x = source.pos.x + dx;
+                const y = source.pos.y + dy;
+
+                if (terrain.get(x, y) !== TERRAIN_MASK_WALL) {
+                    slots++;
+                }
+            }
+        }
+
+        totalSlots += slots;
+    }
+
+    return totalSlots;
+}
+
 function _buildLogisticsCache(room) {
 
     const sources = room.find(FIND_SOURCES)
@@ -175,9 +189,16 @@ function _buildLogisticsCache(room) {
 
     const energyPerTickMax = sources.length * SOURCE_ENERGY_CAPACITY / 300;
     const workNeeded = energyPerTickMax / HARVEST_POWER;
-    const workPerCreep = Math.floor(( room.energyCapacityAvailable - 50 ) / 250);
+    const estimatedWorkPerCreep = 2 * Math.floor(( room.energyCapacityAvailable - 50 ) / 250)
+    const workPerCreep = Math.min(estimatedWorkPerCreep, 5);
     
-    const harvesterNeed = Math.min(5, Math.ceil(workNeeded / workPerCreep));
+    const sourceCapacity = _getSourceCapacity(room);
+
+    const harvesterNeed = Math.min(
+        sourceCapacity,
+        Math.ceil(workNeeded / workPerCreep),
+        6
+    );
 
     // ENERGY CONSUMERS
     for (const s of structures) {
@@ -205,7 +226,17 @@ function _buildLogisticsCache(room) {
         extensionDemand;
 
     // SIMPLE HAULER ESTIMATE
-    const haulerNeed = Math.ceil(totalDemand / 5000);
+    const haulerNeed = Math.ceil(totalDemand / 1000);
+
+
+    const energy = room.energyCapacityAvailable;
+
+    const builderWorkPowerEstimate = energy / 200;
+    const upgraderWorkPowerEstimate = energy / 100;
+
+    const builderMax = (energyPerTickMax - 5) / builderWorkPowerEstimate;
+    const upgraderMax = (energyPerTickMax - 5) / upgraderWorkPowerEstimate;
+
 
     // MODE SIMPLE (tu pourras enrichir après)
     let mode = "low";
@@ -223,10 +254,50 @@ function _buildLogisticsCache(room) {
         },
         harvesterNeed,
         haulerNeed,
+        builderMax,
+        upgraderMax,
         mode
     };
 }
 
+function _updateStructureCacheFromBuildLog(room) {
+
+    const log = room.memory._buildLog || [];
+
+    for (const entry of log) {
+
+        const structures = room.lookForAt(
+            LOOK_STRUCTURES,
+            entry.x,
+            entry.y
+        );
+
+        const built = structures.find(
+            s => s.structureType === entry.type
+        );
+
+        if (!built) continue;
+
+        const cache = room.memory.cache.structure;
+
+        cache[entry.type] ??= [];
+
+        if (!cache[entry.type].includes(built.id)) {
+
+            cache[entry.type].push(built.id);
+
+            console.log(
+                `[CACHE] added ${entry.type} ${built.id}`
+            );
+        }
+
+        // remove completed entry
+        entry.done = true;
+    }
+
+    room.memory._buildLog =
+        log.filter(e => !e.done);
+}
 
 function buildRoomCache(room) {
     room.memory.cache = {
@@ -234,8 +305,12 @@ function buildRoomCache(room) {
         structureMeta: _buildStructureMetaCache(room), 
         transport: _buildTransportCache(room),
         repair: _buildRepairCache(room),
-        logistics: _buildLogisticsCache(room)
     };
 }
 
-module.exports = { buildRoomCache }
+function updateRoomCache(room) {
+    room.memory.cache.logistics = _buildLogisticsCache(room)
+    _updateStructureCacheFromBuildLog(room)
+}
+
+module.exports = { buildRoomCache, updateRoomCache }

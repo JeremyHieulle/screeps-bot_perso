@@ -5,6 +5,10 @@ Room.prototype.buildCache = function() {
     cache.buildRoomCache(this);
 }
 
+Room.prototype.updateCache = function() {
+    cache.updateRoomCache(this);
+}
+
 Room.prototype.getCached = function(category, item) {
 
     this._cached ??= {};
@@ -174,6 +178,7 @@ Room.prototype.requestJob = function (creep) {
         exclude.add('pickup');
     }
 
+    
     const corePos = this.memory.plan.corePos
     const jobs = Object.values(this.memory.jobs)
         .filter(job => {
@@ -211,11 +216,19 @@ Room.prototype.requestJob = function (creep) {
             };
         })
         .filter(Boolean)
-        .sort((a, b) =>
-            creep.pos.getRangeTo(a.target) -
-            creep.pos.getRangeTo(b.target)
-        );
+        .sort((a, b) => {
 
+            const prio =
+                (b.priority || 0) -
+                (a.priority || 0);
+
+            if (prio !== 0) return prio;
+
+            return (
+                creep.pos.getRangeTo(a.target) -
+                creep.pos.getRangeTo(b.target)
+            );
+        });
     
     if (!jobs.length) return false;
 
@@ -226,9 +239,6 @@ Room.prototype.requestJob = function (creep) {
     job.assigned = creep.name;
     job.assignedTick = Game.time;
 
-    
-    console.log(creep.memory.jobId)
-    console.log(creep.room.memory.jobs[jobs[0].id].id)
     return true;
 };
 
@@ -323,16 +333,19 @@ Room.prototype.spawnCreepsNeeded = function() {
 
     const creeps = this.find(FIND_MY_CREEPS);
 
-    // Comptage des creeps existants
+    // =============================
+    // COUNT EXISTING + SPAWNING
+    // =============================
     const creepCount = {};
+
     for (const creep of creeps) {
-        if ( creep && creep.ticksToLive >= 100 ) { 
+        if (creep && creep.ticksToLive >= 100) {
             creepCount[creep.memory.role] ??= 0;
-            creepCount[creep.memory.role]++
+            creepCount[creep.memory.role]++;
         }
     }
 
-    const spawn = this.find(FIND_MY_SPAWNS)[0]; 
+    const spawn = this.find(FIND_MY_SPAWNS)[0];
     if (spawn?.spawning) {
         const spawningName = spawn.spawning.name;
         const role = Memory.creeps[spawningName]?.role;
@@ -343,70 +356,149 @@ Room.prototype.spawnCreepsNeeded = function() {
         }
     }
 
+    // =============================
+    // QUEUED COUNT
+    // =============================
+    const queued = {};
+
+    for (const q of (this.memory.spawnQueue || [])) {
+
+        if (q.priority > 1) continue;
+
+        queued[q.role] ??= 0;
+        queued[q.role]++;
+    }
+
+    const total = (role) =>
+        (creepCount[role] ?? 0) +
+        (queued[role] ?? 0);
+
+    // =============================
+    // BOOTSTRAP PHASE
+    // =============================
+    if (total('harvester') === 0) {
+        this.spawnCreepForRole('harvester', 300, { priority: 0 });
+        return;
+    }
+
+    if (total('hauler') < 2) {
+        this.spawnCreepForRole('hauler', 300, { priority: 1 });
+        return;
+    }
+
+    // =============================
+    // HARVESTER NEED
+    // =============================
+    const harvesterNeed = this.getCache("logistics", "harvesterNeed");
+    const haulerNeed = this.getCache("logistics", "haulerNeed");
+
     const sources = this.find(FIND_SOURCES);
+
     const extractor = this.find(FIND_STRUCTURES, {
         filter: s => s.structureType === STRUCTURE_EXTRACTOR
     });
+
     const exhausted_mineral = this.find(FIND_MINERALS, {
-        filter: m => m.mineralAmount === 0 });
-
-    const mineralHarvester = (( extractor.length - exhausted_mineral ) > 0) ? extractor.length - exhausted_mineral : 0
-    const harvesterNeeded = sources.length + mineralHarvester;
-    if ( this.memory.requested['harvester'] !== harvesterNeeded ) this.memory.requested['harvester'] = harvesterNeeded;
-
-
-    const workingPower = Math.floor(this.energyCapacityAvailable / 200);
-
-    const totalBuild = this.find(FIND_CONSTRUCTION_SITES).reduce(
-        (sum, building) => sum + building.progressTotal - building.progress, 0);
-    const totalRepair = this.find(FIND_STRUCTURES).reduce(
-        (sum, building) => sum + building.hitsMax - building.hits, 0);
-    const urgentRepair = this.find(FIND_STRUCTURES, {
-        filter: s => s.hits < s.hitsMax / 2 &&
-                     s.structureType !== STRUCTURE_WALL
+        filter: m => m.mineralAmount === 0
     });
 
-    // const buildersNeeded = (urgentRepair.length > 0 || totalBuild > 0) ? Math.min(2, Math.ceil(totalRepair / 200000 + totalBuild / 100000)) : 0;
-    let buildersNeeded = 0;
-    const sites = this.find(FIND_CONSTRUCTION_SITES)
-    buildersNeeded = Math.min(sites.length, 1);
-    if ( urgentRepair.length > 0 ) buildersNeeded++
+    const mineralHarvester =
+        ((extractor.length - exhausted_mineral.length) > 0)
+            ? (extractor.length - exhausted_mineral.length)
+            : 0;
 
-    if ( this.memory.requested['builder'] !== buildersNeeded ) this.memory.requested['builder'] = buildersNeeded
+    const harvesterNeeded = sources.length + mineralHarvester;
 
-    if ( ( creepCount['harvester'] ??= 0 ) < this.getCache("logistics", "harvesterNeed") ) this.spawnCreepForRole('harvester');
+    if (this.memory.requested['harvester'] !== harvesterNeeded) {
+        this.memory.requested['harvester'] = harvesterNeeded;
+    }
 
+    if (total('harvester') < harvesterNeed) {
+        this.spawnCreepForRole('harvester');
+    }
+
+    // =============================
+    // HAULER STRESS
+    // =============================
     const droppedEnergy = this.find(FIND_DROPPED_RESOURCES)
         .reduce((sum, r) => sum + r.amount, 0);
 
     const haulStress = droppedEnergy / 1000;
 
     const requestedHauler = Math.max(
-        this.getCache("logistics", "haulerNeed"),
+        haulerNeed,
         Math.ceil(haulStress)
     );
 
-    if ( ( creepCount['hauler'] ??= 0 ) < requestedHauler ) this.spawnCreepForRole('hauler');
+    if (total('hauler') < requestedHauler) {
+        this.spawnCreepForRole('hauler');
+    }
 
-    if ( ( creepCount['upgrader'] ??= 0 ) < this.memory.requested['upgrader'] ) this.spawnCreepForRole('upgrader');
+    // =============================
+    // BUILDER / UPGRADER
+    // =============================
+    const builderMax = this.getCache("logistics", "builderMax");
+    const upgraderMax = this.getCache("logistics", "upgraderMax");
 
-    if ( ( creepCount['builder'] ??= 0 ) < this.memory.requested['builder'] ) this.spawnCreepForRole('builder');
+    let upgraderMaxCost = 200;
+    let requestedUpgrader = 0;
+    let requestedBuilder = 0;
 
-    // this.memory.requested['drainer'] ??= 0
-    // this.memory.requested['drainerHealer'] ??= 0
-    
-    // if ( ( creepCount['drainerHealer'] ??= 0 ) < this.memory.requested['drainerHealer'] ) this.spawnCreepForRole('drainerHealer');
+    const sites = this.find(FIND_CONSTRUCTION_SITES, {
+        filter: s => s.structureType !== STRUCTURE_ROAD
+    });
 
-    // if ( ( creepCount['drainer'] ??= 0 ) < this.memory.requested['drainer'] ) this.spawnCreepForRole('drainer');
+    const storage = this.getCached("structure", STRUCTURE_STORAGE);
 
-}
+    if (( storage.length === 0 ) || ( storage.length > 0 && storage[0].store[RESOURCE_ENERGY] > 500000 )) {
+        upgraderMaxCost = this.energyCapacityAvailable;
+    }
 
-Room.prototype.spawnCreepForRole = function(role, max, opts) {
+    const urgentRepair = this.find(FIND_STRUCTURES, {
+        filter: s =>
+            s.hits < s.hitsMax / 2 &&
+            s.structureType !== STRUCTURE_WALL
+    });
+
+    const roadSites = this.find(FIND_CONSTRUCTION_SITES, {
+        filter: s => s.structureType === STRUCTURE_ROAD
+    });
+
+    // =============================
+    // LOGIC BUILDER / UPGRADER
+    // =============================
+    if (sites.length > 0) {
+        requestedUpgrader = 1;
+        requestedBuilder = builderMax;
+    } else {
+        requestedUpgrader = (this.energyCapacityAvailable > 1000) ? 1 : upgraderMax;
+        requestedBuilder = 0;
+    }
+
+    if (roadSites.length > 0 || urgentRepair.length > 0) {
+        requestedBuilder = Math.max(requestedBuilder, 1);
+        requestedUpgrader = Math.min(requestedUpgrader, 1);
+    }
+
+    if (total('upgrader') < requestedUpgrader) {
+        this.spawnCreepForRole('upgrader', upgraderMaxCost);
+    }
+
+    if (total('builder') < requestedBuilder) {
+        this.spawnCreepForRole('builder');
+    }
+};
+
+Room.prototype.spawnCreepForRole = function(role, max, opts = {}) {
 
     this.memory.spawnQueue ??= [];
 
+    const priority = opts.priority ?? this.getRolePriority(role);
+
     const exists = this.memory.spawnQueue.some(
-        r => r.role === role
+        r =>
+            r.role === role &&
+            r.priority === priority
     );
 
     if (exists) return;
@@ -431,16 +523,16 @@ Room.prototype.spawnCreepForRole = function(role, max, opts) {
 
     if (!body || body.length === 0) return ERR_NOT_ENOUGH_ENERGY;
 
-    const name = `${role}_${Game.time}`;
-    const pushMemory = opts || {}
+    const name = `${role}_${Game.time}_${Math.random().toString(36).slice(2,4)}`;
+    const pushMemory = opts.memory || {};
 
     console.log(`${this} ${role} added to spawnQueue`);
 
     this.memory.spawnQueue.push({
-        priority: this.getRolePriority(role),
+        priority,
         role,
         body,
-        name: `${role}_${Game.time}_${Math.random().toString(36).slice(2,4)}`,
+        name,
         pushMemory
     });
 };
@@ -486,11 +578,11 @@ Room.prototype.getJobPriority = function(job) {
 Room.prototype.getRolePriority = function(role) {
 
     switch(role) {
-        case 'harvester': return 1;
-        case 'hauler': return 2;
-        case 'upgrader': return 3;
-        case 'builder': return 5;
-        default: return 10;
+        case 'harvester': return 10;
+        case 'hauler': return 20;
+        case 'upgrader': return 30;
+        case 'builder': return 50;
+        default: return 100;
     }
 };
 

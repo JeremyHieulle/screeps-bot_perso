@@ -55,11 +55,11 @@ function update(room) {
         }
 
         if (job.type === 'withdraw') {
-            let type = 0;
+            let cancel = 0;
             for (resourceType in obj.store) {
-                type++
+                if ( obj.store[resourceType] < 10 ) cancel = 1
             }
-            if ( type === 0 ) delete mem.jobs[jobId]
+            if ( cancel === 1 ) delete mem.jobs[jobId]
         }
 
         // ==============================
@@ -141,10 +141,10 @@ module.exports = {
 
             const store = container.store;
 
-            if (meta.tag === 'controller') {
+            if (meta.tag === 'controller' && store[RESOURCE_ENERGY] < 1000) {
 
-                createJob(room, 'transfer', container.id, {
-                    priority: 1
+                createJob(room, 'haul', container.id, {
+                    priority: 50
                 });
             }
 
@@ -153,7 +153,7 @@ module.exports = {
 
                 const amount = store[RESOURCE_ENERGY];
 
-                if (amount > 0) {
+                if (amount > 50) {
                     createJob(room, 'withdraw', container.id, {
                         resourceType: RESOURCE_ENERGY,
                         amount
@@ -188,7 +188,7 @@ module.exports = {
 
                 const type = 'haul'
                 const amount = spawn.store.getFreeCapacity(RESOURCE_ENERGY)
-                createJob(room, type, spawn.id, { amount })
+                createJob(room, type, spawn.id, { amount, priority: 100 })
             }
         }
 
@@ -199,7 +199,7 @@ module.exports = {
             if ( extension && extension.store.getFreeCapacity(RESOURCE_ENERGY) > 0 ) {
                 const type = 'haul'
                 const amount = extension.store.getFreeCapacity(RESOURCE_ENERGY)
-                createJob(room, type, extension.id, { amount })
+                createJob(room, type, extension.id, { amount, priority: 100 })
             }
 
         }
@@ -214,6 +214,13 @@ module.exports = {
                 createJob(room, type, tower.id, { amount })
             }
 
+        }
+        
+        const cachedCoreContainer = room.findByTag("core", STRUCTURE_CONTAINER)
+        if (cachedCoreContainer && cachedCoreContainer.store.getFreeCapacity() > 1000) {
+            const type = 'haul'
+            const amount = cachedCoreContainer.store.getFreeCapacity(RESOURCE_ENERGY)
+            createJob(room, type, cachedCoreContainer.id, { amount })
         }
 
         // ==============================

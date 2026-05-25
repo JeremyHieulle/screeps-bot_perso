@@ -3,7 +3,7 @@ module.exports = {
         
         room.memory.requested ??= {};
         room.memory.requested.upgrader ??= 1;
-        
+
         const haulers = room.find(FIND_MY_CREEPS, {
             filter: c =>
                 c.memory.role === 'hauler' &&
@@ -19,7 +19,7 @@ module.exports = {
 
         const HIGH = 500000;
         const LOW  = 300000;
-        const energy = storage.store[RESOURCE_ENERGY];
+        const energy = storage[0].store[RESOURCE_ENERGY];
 
         if (energy > HIGH && room.memory.requested.upgrader < 2) {
             room.memory.requested.upgrader = 2;

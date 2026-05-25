@@ -5,32 +5,24 @@ module.exports = {
         if (!job) {
             creep.toggleWorkingState();
             if ( creep.memory.working ) {
-                const upgradeContainer = creep.room.findByTag("controller", STRUCTURE_CONTAINER);
-                if ( upgradeContainer && upgradeContainer.store[RESOURCE_ENERGY] < 1500 ) {
-                    creep.myTransfer(upgradeContainer);
-                    return;
-                }
+                if (creep.room.controller.level < 4) {
+                    const cachedCoreContainer = creep.room.findByTag("core", STRUCTURE_CONTAINER);
+                    if (cachedCoreContainer && cachedCoreContainer.store[RESOURCE_ENERGY] < 1000) {
+                        creep.myTransfer(cachedCoreContainer, RESOURCE_ENERGY);
+                        return;
+                    } else {
+                        const controllerJob = creep.room.memory.jobs[`upgrade_${creep.room.controller.id}`]
+                        const workPos = controllerJob.workPos;
 
-                const storage = creep.room.getCached("structure", STRUCTURE_STORAGE)
-                if ( storage.length > 0 && storage.store.getFreeCapacity() > creep.store[RESOURCE_ENERGY]) {
-                    creep.myTransfer(storage[0], RESOURCE_ENERGY);
-                    return;
+                        if (creep.pos.isNearTo(workPos.x, workPos.y)) {
+                            creep.drop(RESOURCE_ENERGY);
+                            return;
+                        } else {
+                            creep.moveTo(workPos.x, workPos.y);
+                            return;
+                        }
+                    }
                 }
-                
-                const container = creep.room.findByTag("core", STRUCTURE_CONTAINER)
-                if (container && container.store.getFreeCapacity() > creep.store[RESOURCE_ENERGY]) {
-                    creep.myTransfer(container, RESOURCE_ENERGY);
-                    return;
-                }
-
-                const corePos = creep.room.memory.plan.corePos;
-                if ( !creep.pos.isNearTo(corePos.x, corePos.y)) {
-                    creep.moveTo(corePos.x, corePos.y)
-                } else {
-                    creep.drop(RESOURCE_ENERGY);
-                }
-
-            
             } else {
 
                 const storage = creep.room.getCached("structure", STRUCTURE_STORAGE);
@@ -45,7 +37,8 @@ module.exports = {
                     creep.getEnergy({ excludeIds, weights })
                 }
             }
-            return;
+            creep.idle();
+            return
         }
 
         if (job.type === 'haul' && creep.store[RESOURCE_ENERGY] === 0) {
@@ -62,13 +55,22 @@ module.exports = {
                 }
             }
             const excludeIds = [];
-            const weights = { container: 0.8, storage: 0.5 };
+            const weights = { container: 1, storage: 1 };
             creep.getEnergy({ excludeIds, weights });
             return;
         }
 
         if ((job.type === 'pickup' || job.type === 'withdraw') && creep.store.getFreeCapacity() === 0) {
-            creep.memory.jobId = null;
+            const storage = creep.room.getCached("structure", STRUCTURE_STORAGE);
+            if (storage.length > 0) {
+                if ( creep.pos.isNearTo(storage[0]) ) {
+                    creep.transfer(storage[0], RESOURCE_ENERGY)
+                    creep.memory.jobId = null;
+                }
+                creep.moveTo(storage[0])
+            } else {
+                creep.memory.jobId = null;
+            }
             return;
         }
         creep.doJob(job);

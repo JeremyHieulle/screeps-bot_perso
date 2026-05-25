@@ -179,45 +179,6 @@ function buildNextStructure(room) {
     }
 }
 
-function updateStructureCacheFromBuildLog(room) {
-
-    const log = room.memory._buildLog || [];
-
-    for (const entry of log) {
-
-        const structures = room.lookForAt(
-            LOOK_STRUCTURES,
-            entry.x,
-            entry.y
-        );
-
-        const built = structures.find(
-            s => s.structureType === entry.type
-        );
-
-        if (!built) continue;
-
-        const cache = room.memory.cache.structure;
-
-        cache[entry.type] ??= [];
-
-        if (!cache[entry.type].includes(built.id)) {
-
-            cache[entry.type].push(built.id);
-
-            console.log(
-                `[CACHE] added ${entry.type} ${built.id}`
-            );
-        }
-
-        // remove completed entry
-        entry.done = true;
-    }
-
-    room.memory._buildLog =
-        log.filter(e => !e.done);
-}
-
 function getExistingRoads(room) {
     const roads = room.find(FIND_STRUCTURES)
         .filter(s => s.structureType === STRUCTURE_ROAD)
@@ -319,6 +280,10 @@ module.exports = {
         if (!cache || Game.time % 500 === 0) {
             room.buildCache();
         }
+            
+        if (Game.time % 5 === 0) {
+            room.updateCache();
+        }
         
         // Spawn demand supply
         room.spawnCreepsNeeded();
@@ -348,7 +313,6 @@ module.exports = {
             heatmap.runHeatmap(room);
             if (Game.time % 25 === 0) buildRoads(room);
             if (Game.time % 10 === 0) buildNextStructure(room);
-            if (Game.time % 5 === 0) updateStructureCacheFromBuildLog(room);
             
         }
         

@@ -185,7 +185,11 @@ Creep.prototype.run = function () {
 
 Creep.prototype.getEnergy = function (options = {}) {
 
+    const upgradeContainer = this.room.findByTag("controller", STRUCTURE_CONTAINER);
+    const coreContainer = this.room.findByTag("core", STRUCTURE_CONTAINER);
     const links = this.room.getCached("structure", STRUCTURE_LINK)
+    const storage = this.room.getCached("structure", STRUCTURE_STORAGE);
+    const containers = this.room.getCached("structure", STRUCTURE_CONTAINER);
 
     if ( this.memory.role === 'upgrader' ) {
         for ( const link of links ) {
@@ -195,8 +199,6 @@ Creep.prototype.getEnergy = function (options = {}) {
                 return;
             }
         }
-
-        const upgradeContainer = this.room.findByTag("controller", STRUCTURE_CONTAINER);
 
         if ( upgradeContainer && upgradeContainer.store[RESOURCE_ENERGY] > 0 ) {
             this.myWithdraw(upgradeContainer, RESOURCE_ENERGY);
@@ -226,12 +228,6 @@ Creep.prototype.getEnergy = function (options = {}) {
 
     const targets = [];
 
-
-    const upgradeContainer = this.room.findByTag("controller", STRUCTURE_CONTAINER);
-    const coreContainer = this.room.findByTag("core", STRUCTURE_CONTAINER);
-    const storage = this.room.getCached("structure", STRUCTURE_STORAGE);
-    const containers = this.room.getCached("structure", STRUCTURE_CONTAINER);
-
     const tombstones = this.room.find(FIND_TOMBSTONES, {
         filter: t => t.store[RESOURCE_ENERGY] > 0
     });
@@ -255,20 +251,20 @@ Creep.prototype.getEnergy = function (options = {}) {
 
     for (const container of containers) {
 
+        if (this.memory.jobId === `haul_${container.id}`) continue;
+
         const isUpgrade = upgradeContainer && container.id === upgradeContainer.id;
         const isCore = coreContainer && container.id === coreContainer.id;
 
         if (isUpgrade) {
+            if (this.memory.role === 'hauler') continue
             if (this.memory.role !== 'upgrader' &&
-                this.memory.role !== 'remoteHauler' &&
                 upgradeContainer.store.getFreeCapacity() > 1000) continue;
         }
 
-        if (isCore && this.memory.jobId === null) {
-            if (this.memory.role === 'hauler' ||
-                this.memory.role === 'remoteHauler') continue;
+        if (isCore) {
+            if (this.memory.role === 'hauler') continue;
         }
-
         if (container.store[RESOURCE_ENERGY] <= 0) continue;
 
         targets.push({
@@ -281,7 +277,7 @@ Creep.prototype.getEnergy = function (options = {}) {
     }
 
     for (const s of storage) {
-
+        if (this.memory.jobId === `haul_${s.id}`) continue;
         if (s.store[RESOURCE_ENERGY] <= 0) continue;
 
         targets.push({

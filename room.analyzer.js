@@ -308,19 +308,44 @@ function bestQuadrant(room, core) {
 function mark(plan, type, x, y, opts = {}) {
 
     const key = `${x}:${y}`;
-    if (plan.occupied[key]) return ERR_INVALID_TARGET;
 
-    plan.occupied[key] = type;
+    plan.occupied ??= {};
 
-    if (!plan.structures[type])
-        plan.structures[type] = [];
+    const occupied = plan.occupied[key] || [];
 
-    plan.structures[type].push({
-        x,
-        y,
-        dependsOn: opts.dependsOn || [],
-        ...opts
-    });
+    const overlapable = new Set([
+        STRUCTURE_ROAD,
+        STRUCTURE_CONTAINER,
+        STRUCTURE_RAMPART,
+        'workPos'
+    ]);
+
+    // overlap validation
+    for (const existingType of occupied) {
+
+        const allowed =
+            overlapable.has(type) &&
+            overlapable.has(existingType);
+
+        if (!allowed) {
+            return ERR_INVALID_TARGET;
+        }
+    }
+
+    occupied.push(type);
+
+    plan.occupied[key] = occupied;
+
+    if ( type !== 'workPos' ) {
+        plan.structures[type] ??= [];
+
+        plan.structures[type].push({
+            x,
+            y,
+            dependsOn: opts.dependsOn || [],
+            ...opts
+        });
+    }
 
     return OK;
 }
@@ -400,12 +425,14 @@ function planController(room, core) {
     ).path;
 
     const containerPos = path[path.length - 2];
+    console.log(JSON.stringify(containerPos))
     const workPos = path[path.length - 1];
 
     const linkPos = getPerpendicularPos(containerPos, workPos);
 
     mark(plan, "container", containerPos.x, containerPos.y, { tag: 'controller' });
     mark(plan, "link", linkPos.x, linkPos.y, { tag: 'controller'});
+    mark(plan, "workPos", workPos.x, workPos.y, {tag: 'controller'});
 
     for (let i = 1; i <= path.length - 1; i++) {
         mark(plan, "road", path[i].x, path[i].y, { tag: 'controller'});
@@ -439,6 +466,7 @@ function planSources(room, core) {
 
         mark(plan, "container", containerPos.x, containerPos.y, { tag: 'source'});
         mark(plan, "link", linkPos.x, linkPos.y, { tag: 'source'});
+        mark(plan, "workPos", workPos.x, workPos.y, {tag: 'controller'});
 
         for (let i = 1; i <= path.length - 2; i++) {
             mark(plan, "road", path[i].x, path[i].y, { tag: 'source'});
@@ -472,6 +500,7 @@ function planMineral(room, core) {
 
     mark(plan, "container", containerPos.x, containerPos.y, { tag: 'mineral', dependsOn: ['extractor'] });
     mark(plan, "extractor", mineral.pos.x, mineral.pos.y, { tag: 'mineral' })
+    mark(plan, "workPos", workPos.x, workPos.y, {tag: 'controller'});
     
     plan.spatialJob.push({
         tag: 'mineral',
@@ -702,13 +731,13 @@ function runPlanner(room, core) {
 
     planLabs(room, core, quadrant);
 
-    fillGrid(room, core, quadrant);
-
     planController(room, core);
 
     planSources(room, core);
 
     planMineral(room, core);
+
+    fillGrid(room, core, quadrant);
 
     fillRCL6(room, core);
 
@@ -744,29 +773,39 @@ function buildPlanningMatrix(room) {
         }
     }
 
-    for (const type in plan.structures) {
+    const blockingTypes = new Set([
+        STRUCTURE_EXTENSION,
+        STRUCTURE_SPAWN,
+        STRUCTURE_STORAGE,
+        STRUCTURE_TERMINAL,
+        STRUCTURE_LAB,
+        STRUCTURE_TOWER,
+        STRUCTURE_POWER_SPAWN,
+        STRUCTURE_NUKER,
+        "workPos"
+    ]);
 
-        const tiles = plan.structures[type];
+    for (const key in plan.occupied) {
 
-        for (const t of tiles) {
+        const [x, y] = key.split(":").map(Number);
 
-            if (type === STRUCTURE_ROAD || type === "road") {
-                matrix.set(t.x, t.y, 1);
-                continue;
-            }
+        const occupiedTypes = plan.occupied[key];
 
-            // structures bloquantes
-            if (
-                type === "extension" ||
-                type === "spawn" ||
-                type === "storage" ||
-                type === "terminal" ||
-                type === "lab" ||
-                type === "tower" ||
-                type === "powerSpawn" ||
-                type === "nuker"
-            ) {
-                matrix.set(t.x, t.y, 255);
+        // roads stay cheap
+        if (
+            occupiedTypes.includes(STRUCTURE_ROAD) ||
+            occupiedTypes.includes("road")
+        ) {
+            matrix.set(x, y, 1);
+        }
+
+        // blocking tiles
+        for (const occupiedType of occupiedTypes) {
+
+            if (blockingTypes.has(occupiedType)) {
+
+                matrix.set(x, y, 255);
+                break;
             }
         }
     }
