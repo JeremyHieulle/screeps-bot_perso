@@ -22,6 +22,11 @@ module.exports = {
                             return;
                         }
                     }
+                } else {
+                    const storage = creep.room.getCached("structure", STRUCTURE_STORAGE)
+                    if ( storage.length > 0 ) {
+                        creep.myTransfer(storage[0])
+                    }
                 }
             } else {
 
