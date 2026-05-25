@@ -450,7 +450,7 @@ Room.prototype.spawnCreepsNeeded = function() {
 
     const storage = this.getCached("structure", STRUCTURE_STORAGE);
 
-    if (( storage.length === 0 ) || ( storage.length > 0 && storage[0].store[RESOURCE_ENERGY] > 500000 )) {
+    if (( storage.length === 0 ) || ( storage.length > 0 && storage[0].store[RESOURCE_ENERGY] > 300000 )) {
         upgraderMaxCost = this.energyCapacityAvailable;
     }
 
