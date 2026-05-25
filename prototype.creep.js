@@ -99,9 +99,11 @@ Creep.prototype.myRepair = function (x) {
 
 Creep.prototype.myTransfer = function (x, y) {
     y ??= RESOURCE_ENERGY;
-    if (this.transfer(x, y) === ERR_NOT_IN_RANGE) {
+    const transfer = this.transfer(x, y) 
+    if ( transfer === ERR_NOT_IN_RANGE) {
         this.moveTo(x);
     }
+    return transfer
 }
 
 Creep.prototype.myUpgrade = function (x) {
@@ -131,8 +133,7 @@ Creep.prototype.dumpNonEnergy = function (range) {
         if (resourceType === RESOURCE_ENERGY) continue;
         if (this.store[resourceType] <= 0) continue;
 
-        this.myTransfer(storage, resourceType);
-        return OK;
+        return this.myTransfer(storage, resourceType);
     }
 
     return ERR_NOT_FOUND;
