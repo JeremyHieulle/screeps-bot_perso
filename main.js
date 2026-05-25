@@ -1,7 +1,7 @@
 require('init');
 const memoryManager = require('memory.manager');
 
-require('utils/global.functions')(global);
+require('global.functions')(global);
 const diplomacy = require('global.diplomacy');
 const roomManager = require('room.manager');
 const roomDefense = require('room.defense');
@@ -155,7 +155,7 @@ module.exports.loop = function () {
         const room = Game.rooms[roomName];
 
         diplomacy.damageDetector(room);
-        
+
         if (!room.controller?.my) continue;
 
         const mem = room.memory;
