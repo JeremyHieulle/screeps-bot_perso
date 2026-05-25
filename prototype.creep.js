@@ -175,7 +175,7 @@ Creep.prototype.run = function () {
         
         handler.run(this, job);
     } else {
-
+        this.memory.jobId = null;
         const handlers = require('handlers.role');
         const handler = handlers[this.memory.role];
             
