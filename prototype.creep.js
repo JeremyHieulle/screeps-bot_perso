@@ -78,8 +78,10 @@ Creep.prototype.myPickup = function (x) {
     }
 }
 
-Creep.prototype.myWithdraw = function (x, y) {
+Creep.prototype.myWithdraw = function (x, y, amount) {
     y ??= RESOURCE_ENERGY;
+    amount ??= this.store[y];
+
     if (this.withdraw(x, y) === ERR_NOT_IN_RANGE) {
         this.moveTo(x);
     }
@@ -97,9 +99,10 @@ Creep.prototype.myRepair = function (x) {
     // console.log('Repairing ' + x + ', return: ' + this.repair(x));
 }
 
-Creep.prototype.myTransfer = function (x, y) {
+Creep.prototype.myTransfer = function (x, y, amount) {
 
     y ??= RESOURCE_ENERGY;
+    amount ??= this.store[y];
 
     const result = this.transfer(x, y) 
     
@@ -462,7 +465,7 @@ Creep.prototype.doJob = function(job) {
         const target = Game.getObjectById(job.originId);
         if ( target ) {
             for (const resourceType in target.store)
-                this.myWithdraw(target, resourceType);
+                this.myWithdraw(target, resourceType, job.amount);
         } else {
             this.say('pickup ❓');
         }
@@ -471,7 +474,7 @@ Creep.prototype.doJob = function(job) {
     if ( job.type === 'haul' ) {
         const target = Game.getObjectById(job.originId);
         if ( target ) {
-            this.myTransfer(target);
+            this.myTransfer(target, job.resourceType, job.amount);
         } else {
             this.say('transfer ❓');
         }
