@@ -36,7 +36,13 @@ module.exports = {
                 creep.moveTo(hostiles[0])
             };
         }
-        // const attackPos = new RoomPosition(34, 46, 'W38S38');
+
+        if (creep.memory.attackPos) {
+            const { x, y, roomName } = creep.memory.attackPos
+            const attackPos = new RoomPosition(x, y, roomName);
+            creep.moveTo(attackPos);
+        }
+
         // const healPos  = new RoomPosition(5, 20, 'W37S38');
         // const afkPos = new RoomPosition(4, 46, 'W37S38');
 
