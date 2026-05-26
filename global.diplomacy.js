@@ -3,7 +3,7 @@ function run() {
 
     Memory.diplomacy ??= {};
 
-    const ALLIES = ["D3matt", "Arta"];
+    const ALLIES = ["D3matt"];
 
     for (const name of ALLIES) {
         Memory.diplomacy[name] ??= {
