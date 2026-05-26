@@ -81,7 +81,7 @@ function exploreExits(creep) {
     const exits2 = Game.map.describeExits(creep.room.name);
     const hostile = Memory.intel[exits2[randomDir]].hostile || false
 
-    if (exits2[randomDir] && !Memory.intel[exits2[randomDir]].hostile) {
+    if (exits2[randomDir] && !hostile) {
         creep.moveTo(new RoomPosition(25, 25, exits2[randomDir]));
     }
 }
