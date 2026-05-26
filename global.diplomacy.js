@@ -98,10 +98,7 @@ function resolveFromEventLog(room, targetId) {
 
         const e = events[i];
 
-        if (
-            e.event === EVENT_ATTACK ||
-            e.event === EVENT_ATTACK_TYPE
-        ) {
+        if ( e.event === EVENT_ATTACK ) {
             if (e.data.targetId !== targetId) continue;
 
             const attacker = Game.getObjectById(e.data.attackerId);
