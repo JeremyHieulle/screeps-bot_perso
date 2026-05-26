@@ -275,7 +275,7 @@ Room.prototype.runLinks = function () {
     if (!coreLink) return;
 
     const coreEnergy = coreLink.store[RESOURCE_ENERGY]
-    const coreFree = coreLink.store.getFreeCapacity()
+    const coreFree = coreLink.store.getFreeCapacity(RESOURCE_ENERGY)
 
     const TRANSFER_MIN = 300;
 
@@ -285,11 +285,12 @@ Room.prototype.runLinks = function () {
         if (!m) continue;
 
         const energy = link.store[RESOURCE_ENERGY] || 0;
-        const free = link.store.getFreeCapacity();
+        const free = link.store.getFreeCapacity(RESOURCE_ENERGY);
 
         // =========================
         // SOURCE LINK LOGIC
         // =========================
+
         if (m.tag === "source" && energy >= TRANSFER_MIN && coreFree >= TRANSFER_MIN) {
             link.transferEnergy(coreLink);
         }
