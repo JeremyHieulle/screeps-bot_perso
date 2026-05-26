@@ -8,7 +8,7 @@ const patterns = {
     remoteBuilder:  { pattern: [WORK, CARRY, ATTACK, MOVE, MOVE] },
     remoteHauler:  { pattern: [CARRY, MOVE] },
     remoteMiner:  { pattern: [WORK, WORK, CARRY, MOVE], max: 3 },
-    scout:  { pattern: [WORK, CARRY, ATTACK, MOVE, MOVE] },
+    scout:  { base: [MOVE] },
     attacker:  { pattern: [ATTACK, MOVE] },
     healer:  { pattern: [HEAL, MOVE] },
     guard:  { pattern: [TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, TOUGH, ATTACK] },

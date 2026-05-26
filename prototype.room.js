@@ -460,6 +460,10 @@ Room.prototype.spawnCreepsNeeded = function() {
     if (total('builder') < requestedBuilder) {
         this.spawnCreepForRole('builder');
     }
+
+    if (Object.keys(Memory.intel?.rooms || {}).length < 20) {
+        this.spawnCreepForRole('scout');
+    }
 };
 
 Room.prototype.spawnCreepForRole = function(role, max, opts = {}) {
