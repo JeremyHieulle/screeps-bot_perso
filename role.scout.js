@@ -1,17 +1,41 @@
 function getScoutTarget(roomName) {
 
-    Memory.intel ??= { rooms: {} };
-
     const exits = Game.map.describeExits(roomName);
 
+    let best = null;
+    let bestScore = -Infinity;
+
     for (const dir in exits) {
-        const target = exits[dir];
-        if (!Memory.intel.rooms[target]) {
-            return target;
+
+        const room = exits[dir];
+
+        const intel = Memory.intel?.rooms?.[room];
+        const penalty = Memory.scoutPenalty?.[room] || 0;
+
+        let score = 0;
+
+        // priorité absolue : inconnue
+        if (!intel) score += 1000;
+
+        // moins récemment visitée = mieux
+        if (intel) {
+            score += (Game.time - intel.lastSeen) / 10;
+        }
+
+        // pénalité mort
+        if (intel.hostile)
+            score -= 500;
+
+        // léger random pour éviter lock
+        score += Math.random() * 10;
+
+        if (score > bestScore) {
+            bestScore = score;
+            best = room;
         }
     }
 
-    return null;
+    return best;
 }
 
 function computeRoomDanger(room) {
@@ -79,29 +103,6 @@ function scanRoom(room) {
     };
 }
 
-function exploreExits(creep) {
-
-    const exits = Game.map.describeExits(creep.room.name);
-
-    for (const dir in exits) {
-        const room = exits[dir];
-
-        if (!Memory.intel?.rooms?.[room]) {
-            creep.moveTo(new RoomPosition(25, 25, room));
-            return;
-        }
-    }
-
-    // si tout est connu → errance contrôlée
-    const randomDir = Math.floor(Math.random() * 4) + 1;
-    const exits2 = Game.map.describeExits(creep.room.name);
-    const hostile = Memory.intel[exits2[randomDir]]?.hostile || false
-
-    if (exits2[randomDir] && !hostile) {
-        creep.moveTo(new RoomPosition(25, 25, exits2[randomDir]));
-    }
-}
-
 module.exports = {
 
     run(creep) {
@@ -117,15 +118,10 @@ module.exports = {
         if (!creep.memory.target) {
             getScoutTarget(creep.room.name);
         }
-        
-        // =========================
-        // PAS DE TARGET = idle exploration
-        // =========================
-        if (!creep.memory.target) {
-            exploreExits(creep);
-            return;
-        }
 
+        if (!creep.memory.target) {
+            return; // idle naturel (ou reroll next tick)
+        }
 
         // =========================
         // MOVE
