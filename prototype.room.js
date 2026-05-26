@@ -461,7 +461,7 @@ Room.prototype.spawnCreepsNeeded = function() {
         this.spawnCreepForRole('builder');
     }
 
-    if (Object.keys(Memory.intel?.rooms || {}).length < 20 && total('scout') < 2) {
+    if (Object.keys(Memory.intel?.rooms || {}).length < 17 && total('scout') < 1) {
         this.spawnCreepForRole('scout');
     }
 };
