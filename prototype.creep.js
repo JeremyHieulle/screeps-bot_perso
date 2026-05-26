@@ -80,7 +80,7 @@ Creep.prototype.myPickup = function (x) {
 
 Creep.prototype.myWithdraw = function (x, y, desiredAmount) {
     y ??= RESOURCE_ENERGY;
-    const amount = (desiredAmount && desiredAmount >= this.store.getFreeCapacity[y]) ? desiredAmount : this.store.getFreeCapacity[y];
+    const amount = (desiredAmount && desiredAmount >= this.store.getFreeCapacity(y)) ? desiredAmount : this.store.getFreeCapacity(y);
 
     if (this.withdraw(x, y, amount) === ERR_NOT_IN_RANGE) {
         this.moveTo(x);

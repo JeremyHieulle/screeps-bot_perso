@@ -28,6 +28,12 @@ function update(room) {
             const energy = obj.store.getUsedCapacity(RESOURCE_ENERGY);
             const delta = TARGET - energy;
 
+            const creep = Game.creeps[job.assigned];
+
+            if (!creep || job.id !== creep.memory.jobId) {
+                job.assigned = null;
+            }
+
             // trop proche de l'équilibre → suppression job
             if (Math.abs(delta) < 50) {
                 delete mem.jobs[jobId];
@@ -38,6 +44,7 @@ function update(room) {
 
             // optionnel mais recommandé : indiquer direction
             job.type = delta > 0 ? 'haul' : 'withdraw';
+            continue
         }
 
 

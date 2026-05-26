@@ -205,17 +205,17 @@ function _buildLogisticsCache(room) {
 
         // towers
         if (s.structureType === STRUCTURE_TOWER) {
-            towerDemand += Math.max(0, 500)// - s.store?.[RESOURCE_ENERGY]);
+            towerDemand += Math.max(0, 500 - s.store?.[RESOURCE_ENERGY]);
         }
 
         // spawns
         if (s.structureType === STRUCTURE_SPAWN) {
-            spawnDemand += Math.max(0, s.energyCapacity)// - s.energy);
+            spawnDemand += Math.max(0, s.energyCapacity - s.energy);
         }
 
         // extensions
         if (s.structureType === STRUCTURE_EXTENSION) {
-            extensionDemand += Math.max(0, s.energyCapacity)// - s.energy);
+            extensionDemand += Math.max(0, s.energyCapacity - s.energy);
         }
     }
 
@@ -226,7 +226,7 @@ function _buildLogisticsCache(room) {
         extensionDemand;
 
     // SIMPLE HAULER ESTIMATE
-    const haulerNeed = Math.ceil(totalDemand / 1000);
+    const haulerNeed = Math.max(1, Math.ceil(totalDemand / 1000));
 
 
     const energy = room.energyCapacityAvailable;
