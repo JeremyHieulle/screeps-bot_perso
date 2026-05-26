@@ -181,10 +181,10 @@ Room.prototype.requestJob = function (creep) {
             // =============================
             // ZONE FILTER
             // =============================
-            const zone = job.zone || 'global';
+            const area = job.area || 'global';
 
             // managers ONLY core
-            if (role === 'manager' && zone !== 'core') {
+            if (role === 'manager' && area !== 'core') {
                 return false;
             }
 
@@ -192,7 +192,7 @@ Room.prototype.requestJob = function (creep) {
             if (
                 role === 'hauler' &&
                 hasManager &&
-                zone === 'core'
+                area === 'core'
             ) {
                 return false;
             }
