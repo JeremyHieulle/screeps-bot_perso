@@ -19,7 +19,30 @@ function update(room) {
 
 
         // ==============================
-        // 2. LOGIQUE METIER
+        // 2. SPECIFIC LINK CORE
+        // ==============================
+
+        if (obj.structureType === STRUCTURE_LINK && job.area === 'core') {
+
+            const TARGET = 400;
+            const energy = obj.store.getUsedCapacity(RESOURCE_ENERGY);
+            const delta = TARGET - energy;
+
+            // trop proche de l'équilibre → suppression job
+            if (Math.abs(delta) < 50) {
+                delete mem.jobs[jobId];
+                continue;
+            }
+
+            job.amount = Math.abs(delta);
+
+            // optionnel mais recommandé : indiquer direction
+            job.type = delta > 0 ? 'haul' : 'withdraw';
+        }
+
+
+        // ==============================
+        // 3. LOGIQUE METIER
         // ==============================
 
         if (job.type === 'pickup') {
