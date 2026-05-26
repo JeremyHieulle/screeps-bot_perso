@@ -78,14 +78,25 @@ Creep.prototype.myPickup = function (x) {
     }
 }
 
-Creep.prototype.myWithdraw = function (x, y, desiredAmount) {
-    y ??= RESOURCE_ENERGY;
-    const amount = (desiredAmount && desiredAmount >= this.store.getFreeCapacity(y)) ? desiredAmount : this.store.getFreeCapacity(y);
+Creep.prototype.myWithdraw = function (target, resourceType = RESOURCE_ENERGY, desiredAmount) {
 
-    if (this.withdraw(x, y, amount) === ERR_NOT_IN_RANGE) {
-        this.moveTo(x);
+    const available = target.store?.[resourceType] || 0;
+    const free = this.store.getFreeCapacity(resourceType);
+
+    const amount = Math.min(
+        available,
+        free,
+        desiredAmount || available
+    );
+
+    const result = this.withdraw(target, resourceType, amount);
+
+    if (result === ERR_NOT_IN_RANGE) {
+        this.moveTo(target);
     }
-}
+
+    return result;
+};
 
 Creep.prototype.myHeal = function (x) {
     if (this.heal(x) === ERR_NOT_IN_RANGE) {
@@ -99,19 +110,25 @@ Creep.prototype.myRepair = function (x) {
     // console.log('Repairing ' + x + ', return: ' + this.repair(x));
 }
 
-Creep.prototype.myTransfer = function (x, y, desiredAmount) {
+Creep.prototype.myTransfer = function (target, resourceType = RESOURCE_ENERGY, desiredAmount) {
 
-    y ??= RESOURCE_ENERGY;
-    const amount = (desiredAmount && desiredAmount <= this.store[y]) ? desiredAmount : this.store[y];
+    const available = this.store[resourceType] || 0;
+    const free = target.store?.getFreeCapacity(resourceType) || 0;
 
-    const result = this.transfer(x, y, amount) 
-    
-    if ( result === ERR_NOT_IN_RANGE) {
-        this.moveTo(x);
+    const amount = Math.min(
+        available,
+        free,
+        desiredAmount || available
+    );
+
+    const result = this.transfer(target, resourceType, amount);
+
+    if (result === ERR_NOT_IN_RANGE) {
+        this.moveTo(target);
     }
 
-    return result
-}
+    return result;
+};
 
 Creep.prototype.myUpgrade = function (x) {
     if (this.upgradeController(x) === ERR_NOT_IN_RANGE) {
