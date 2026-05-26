@@ -194,22 +194,6 @@ module.exports.loop = function () {
     // 2. ACTIONS TEMPORAIRES
     // ==============================
 
-    // TEMP LINK W36S38
-    const linkFrom_1 = Game.getObjectById('6a0ab9f0700e8db26c046f67');
-    const linkFrom_2 = Game.getObjectById('6a0ab6421c370712f14b2199');
-    const linkTo = Game.getObjectById('6a0ab30ee45edf33d8d39d21');
-    const linkUpgrade = Game.getObjectById('6a1575cbda6a1550e34c6065');
-    if (linkFrom_1 && linkTo && linkTo.store.getFreeCapacity(RESOURCE_ENERGY) >= 200 ) linkFrom_1.transferEnergy(linkTo);
-    if (linkFrom_2 && linkTo && linkTo.store.getFreeCapacity(RESOURCE_ENERGY) >= 200 ) linkFrom_2.transferEnergy(linkTo);
-    if (linkUpgrade && linkTo && linkUpgrade.store.getFreeCapacity(RESOURCE_ENERGY) >= 200) linkTo.transferEnergy(linkUpgrade);
-    // TEMP LINK W37S37
-    const linkFrom2_1 = Game.getObjectById('6a01b8db96e31b50b048ffd9');
-    const linkFrom2_2 = Game.getObjectById('6a09c602b231a894d86f885e');
-    const linkTo2 = Game.getObjectById('6a07fd2c52094f673f8a6e69');
-    if (linkFrom2_1 && linkTo2 && linkTo2.store.getFreeCapacity(RESOURCE_ENERGY) >= 200 ) linkFrom2_1.transferEnergy(linkTo2);
-    if (linkFrom2_2 && linkTo2 && linkTo2.store.getFreeCapacity(RESOURCE_ENERGY) >= 200 ) linkFrom2_2.transferEnergy(linkTo2);
-
-
 
     // ==============================
     // 4. CREEP LOGIC

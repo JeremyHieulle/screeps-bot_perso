@@ -264,6 +264,42 @@ Room.prototype.requestJob = function (creep) {
     return true;
 };
 
+Room.prototype.runLinks = function () {
+
+    const links = this.getCached(LOOK_STRUCTURES, STRUCTURE_LINK);
+    const meta = this.memory.cache?.structureMeta;
+
+    if (!links || !meta) return;
+
+    const coreLink = this.findByTag("core", STRUCTURE_LINK);
+    if (!coreLink) return;
+
+    const coreEnergy = coreLink.store[RESOURCE_ENERGY]
+    const coreFree = coreLink.store.getFreeCapacity()
+
+    const TRANSFER_MIN = 300;
+
+    for (const link of links) {
+
+        const m = meta[link.id];
+        if (!m) continue;
+
+        const energy = link.store[RESOURCE_ENERGY] || 0;
+        const free = link.store.getFreeCapacity();
+
+        // =========================
+        // SOURCE LINK LOGIC
+        // =========================
+        if (m.tag === "source" && energy >= TRANSFER_MIN && coreFree >= TRANSFER_MIN) {
+            link.transferEnergy(coreLink);
+        }
+
+        if (m.tag === "controller" && free >= TRANSFER_MIN && coreEnergy >= TRANSFER_MIN) {
+            coreLink.transferEnergy(link)
+        }
+    }
+};
+
 Room.prototype.spawnCreepsNeeded = function() {
 
     const creeps = this.find(FIND_MY_CREEPS);
