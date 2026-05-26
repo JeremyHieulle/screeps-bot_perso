@@ -407,13 +407,7 @@ Room.prototype.spawnCreepsNeeded = function() {
             ? (extractor.length - exhausted_mineral.length)
             : 0;
 
-    const harvesterNeeded = sources.length + mineralHarvester;
-
-    if (this.memory.requested['harvester'] !== harvesterNeeded) {
-        this.memory.requested['harvester'] = harvesterNeeded;
-    }
-
-    if (total('harvester') < harvesterNeed) {
+    if (total('harvester') < harvesterNeed + mineralHarvester) {
         this.spawnCreepForRole('harvester');
     }
 
