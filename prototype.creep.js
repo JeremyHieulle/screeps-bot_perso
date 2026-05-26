@@ -162,7 +162,8 @@ Creep.prototype.run = function () {
         'harvester',
         'hauler',
         'builder',
-        'upgrader'
+        'upgrader',
+        'manager'
     ]);
 
     let job = this.room.memory.jobs[this.memory.jobId];

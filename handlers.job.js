@@ -11,7 +11,8 @@ const handlers = {
     pickup: require('role.hauler'),
     build: require('role.builder'),
     repair: require('role.builder'),
-    upgrade: require('role.upgrader')
+    upgrade: require('role.upgrader'),
+    manager: require('role.manager')
 };
 
 module.exports = handlers;
