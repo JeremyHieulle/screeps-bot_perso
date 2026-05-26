@@ -101,7 +101,7 @@ module.exports = {
         // PAS DE TARGET = idle exploration
         // =========================
         if (!creep.memory.target) {
-            this.exploreExits(creep);
+            exploreExits(creep);
             return;
         }
 
