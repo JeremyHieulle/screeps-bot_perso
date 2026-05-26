@@ -23,7 +23,7 @@ function getScoutTarget(roomName) {
         }
 
         // pénalité mort
-        if (intel.hostile)
+        if (intel?.hostile)
             score -= 500;
 
         // léger random pour éviter lock
