@@ -79,6 +79,7 @@ function exploreExits(creep) {
     // si tout est connu → errance contrôlée
     const randomDir = Math.floor(Math.random() * 4) + 1;
     const exits2 = Game.map.describeExits(creep.room.name);
+    const hostile = Memory.intel[exits2[randomDir]].hostile || false
 
     if (exits2[randomDir] && !Memory.intel[exits2[randomDir]].hostile) {
         creep.moveTo(new RoomPosition(25, 25, exits2[randomDir]));
