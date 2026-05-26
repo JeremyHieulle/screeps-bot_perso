@@ -2,6 +2,7 @@
 const patterns = {
     harvester: { base: [CARRY], pattern: [WORK, WORK, MOVE], max: 3 },
     hauler:    { pattern: [CARRY, CARRY, MOVE], max: 6 },
+    manager: { pattern: [CARRY, CARRY, CARRY, CARRY, MOVE], max : 4 },
     builder:  { pattern: [WORK, CARRY, MOVE] },
     upgrader:  { base: [WORK, CARRY, MOVE], pattern: [WORK] },
     remoteBuilder:  { pattern: [WORK, CARRY, ATTACK, MOVE, MOVE] },

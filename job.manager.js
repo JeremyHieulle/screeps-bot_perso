@@ -185,11 +185,15 @@ module.exports = {
         const cachedSpawns = room.getCached("structure", STRUCTURE_SPAWN);
 
         for ( const spawn of cachedSpawns ) {
+
+            const meta = room.memory.cache.structureMeta?.[spawn.id];
+
             if ( spawn && spawn.store.getFreeCapacity(RESOURCE_ENERGY) > 0 ) {
 
                 const type = 'haul'
                 const amount = spawn.store.getFreeCapacity(RESOURCE_ENERGY)
-                createJob(room, type, spawn.id, { amount, priority: 100 })
+                const area = meta?.tag ?? 'global'
+                createJob(room, type, spawn.id, { amount, priority: 100, area })
             }
         }
 
@@ -212,7 +216,7 @@ module.exports = {
             if ( tower && tower.store.getFreeCapacity(RESOURCE_ENERGY) > 100 ) {
                 const type = 'haul'
                 const amount = tower.store.getFreeCapacity(RESOURCE_ENERGY)
-                createJob(room, type, tower.id, { amount })
+                createJob(room, type, tower.id, { amount, area: 'core' })
             }
 
         }
@@ -221,7 +225,7 @@ module.exports = {
         if (cachedCoreContainer && cachedCoreContainer.store.getFreeCapacity() > 1000) {
             const type = 'haul'
             const amount = cachedCoreContainer.store.getFreeCapacity(RESOURCE_ENERGY)
-            createJob(room, type, cachedCoreContainer.id, { amount })
+            createJob(room, type, cachedCoreContainer.id, { amount, area: 'core' })
         }
 
         // ==============================
@@ -230,23 +234,36 @@ module.exports = {
 
         const cachedLinks = room.getCached("structure", STRUCTURE_LINK)
 
-        for ( const link of cachedLinks ) {
+        for (const link of cachedLinks) {
 
             const meta = room.memory.cache.structureMeta?.[link.id];
-            if (!meta) continue;
+            if (!meta || meta.tag !== 'core') continue;
 
-            if ( link && meta.tag === 'core' ) {
-                for ( const resourceType in link.store ) {
+            const energy = link.store.getUsedCapacity(RESOURCE_ENERGY);
+            const free = link.store.getFreeCapacity(RESOURCE_ENERGY);
 
-                    const amount = link.store[resourceType]
+            // =========================
+            // TROP VIDE → FILL
+            // =========================
+            if (energy < 300) {
 
-                    if ( link.store[resourceType] > 0 ) {
-                        createJob(room, 'withdraw', link.id, {
-                            resourceType: resourceType,
-                            amount: link[resourceType]
-                        }); 
-                    }
-                }
+                createJob(room, 'haul', link.id, {
+                    resourceType: RESOURCE_ENERGY,
+                    amount: 400 - energy,
+                    area: 'core'
+                });
+            }
+
+            // =========================
+            // TROP PLEIN → DRAIN
+            // =========================
+            else if (free < 300) {
+
+                createJob(room, 'withdraw', link.id, {
+                    resourceType: RESOURCE_ENERGY,
+                    amount: 400 - free,
+                    area: 'core'
+                });
             }
         }
 

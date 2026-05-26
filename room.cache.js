@@ -237,6 +237,12 @@ function _buildLogisticsCache(room) {
     const builderMax = (energyPerTickMax - 5) / builderWorkPowerEstimate;
     const upgraderMax = (energyPerTickMax - 5) / upgraderWorkPowerEstimate;
 
+    const managers = room.find(FIND_MY_CREEPS, {
+        filter: c =>
+            c.memory.role === 'manager'
+    });
+
+    const hasManager = managers.length > 0 ? 1 : 0;
 
     // MODE SIMPLE (tu pourras enrichir après)
     let mode = "low";
@@ -256,6 +262,7 @@ function _buildLogisticsCache(room) {
         haulerNeed,
         builderMax,
         upgraderMax,
+        hasManager,
         mode
     };
 }

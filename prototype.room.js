@@ -138,6 +138,7 @@ Room.prototype.getCore = function () {
 }
 
 Room.prototype.requestJob = function (creep) {
+
     creep.memory.jobId ??= null;
 
     const role = creep.memory.role;
@@ -145,31 +146,75 @@ Room.prototype.requestJob = function (creep) {
 
     const exclude = new Set();
 
-    if (role === 'hauler' && creep.store.getFreeCapacity() === 0) {
+    if (
+        role === 'hauler' &&
+        creep.store.getFreeCapacity() === 0
+    ) {
         exclude.add('withdraw');
         exclude.add('pickup');
     }
 
-    
-    const corePos = this.memory.plan.corePos
+    const hasManager =
+        this.getCache("logistics", "managerNeed") > 0;
+
+    const corePos = this.memory.plan.corePos;
+
     const jobs = Object.values(this.memory.jobs)
+
         .filter(job => {
 
+            // =============================
+            // ROLE FILTER
+            // =============================
             if (!jobTypes.includes(job.type)) return false;
+
+            // =============================
+            // EXCLUDE FILTER
+            // =============================
             if (exclude.has(job.type)) return false;
+
+            // =============================
+            // ASSIGNED FILTER
+            // =============================
             if (job.assigned) return false;
 
-            // dirty anti-core pickup for haulers
+            // =============================
+            // ZONE FILTER
+            // =============================
+            const zone = job.zone || 'global';
+
+            // managers ONLY core
+            if (role === 'manager' && zone !== 'core') {
+                return false;
+            }
+
+            // haulers avoid core if manager exists
+            if (
+                role === 'hauler' &&
+                hasManager &&
+                zone === 'core'
+            ) {
+                return false;
+            }
+
+            // =============================
+            // DIRTY ANTI-CORE PICKUP
+            // =============================
             if (
                 role === 'hauler' &&
                 job.type === 'pickup'
             ) {
-                const target = Game.getObjectById(job.originId);
+
+                const target =
+                    Game.getObjectById(job.originId);
 
                 if (
                     target &&
                     corePos &&
-                    target.pos.getRangeTo(corePos.x, corePos.y) <= 2
+                    target.pos.getRangeTo(
+                        corePos.x,
+                        corePos.y
+                    ) <= 2
                 ) {
                     return false;
                 }
@@ -177,8 +222,11 @@ Room.prototype.requestJob = function (creep) {
 
             return true;
         })
+
         .map(job => {
-            const target = Game.getObjectById(job.originId);
+
+            const target =
+                Game.getObjectById(job.originId);
 
             if (!target) return null;
 
@@ -187,7 +235,9 @@ Room.prototype.requestJob = function (creep) {
                 target
             };
         })
+
         .filter(Boolean)
+
         .sort((a, b) => {
 
             const prio =
@@ -201,7 +251,7 @@ Room.prototype.requestJob = function (creep) {
                 creep.pos.getRangeTo(b.target)
             );
         });
-    
+
     if (!jobs.length) return false;
 
     const job = this.memory.jobs[jobs[0].id];
@@ -343,6 +393,13 @@ Room.prototype.spawnCreepsNeeded = function() {
         filter: s => s.structureType === STRUCTURE_ROAD
     });
 
+    const coreLink = this.findByTag("core", STRUCTURE_LINK)
+    const hasManager = this.getCache("logistics", "hasManager");
+
+    if ( storage.length > 0 && coreLink && total('manager') < 1 ) {
+        this.spawnCreepForRole('manager');
+    } 
+    
     // =============================
     // LOGIC BUILDER / UPGRADER
     // =============================
