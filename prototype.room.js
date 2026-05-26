@@ -402,7 +402,7 @@ Room.prototype.spawnCreepForRole = function(role, max, opts = {}) {
 
     if (!body || body.length === 0) return ERR_NOT_ENOUGH_ENERGY;
 
-    const name = `${role}_${Game.time}_${Math.random().toString(36).slice(2,4)}`;
+    const name = `${role}_${Game.time}_${Math.random().toString(36).slice(2,8)}`;
     const pushMemory = opts.memory || {};
 
     console.log(`${this} ${role} added to spawnQueue`);
