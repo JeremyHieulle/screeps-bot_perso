@@ -434,7 +434,7 @@ Room.prototype.spawnCreepsNeeded = function() {
     const hasManager = this.getCache("logistics", "hasManager");
 
     if ( storage.length > 0 && coreLink && total('manager') < 1 ) {
-        this.spawnCreepForRole('manager', this.energyCapacityAvailable, {memory: { workPos: { x: this.plan.corePos.x, y: this.plan.corePos.y }}});
+        this.spawnCreepForRole('manager', this.energyCapacityAvailable, {memory: { workPos: { x: this.memory.plan.corePos.x, y: this.memory.plan.corePos.y }}});
     } 
 
     // =============================
