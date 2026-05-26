@@ -256,7 +256,7 @@ module.exports.loop = function () {
 
 
     if ((Game.time % 1500 ) - 78 === 0 ) {
-        Game.rooms['W36S38'].spawnCreepForRole('remoteHauler', 1300, { haulPos: { x: 43, y: 17, roomName: 'W37S38'}})
+        Game.rooms['W36S38'].spawnCreepForRole('remoteHauler', 1300, { memory: { haulPos: { x: 43, y: 17, roomName: 'W37S38'}}})
     }
     // const enemyRoom = Game.rooms['W38S38'];
     // if ( enemyRoom ) {
