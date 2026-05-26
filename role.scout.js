@@ -1,19 +1,3 @@
-function getScoutTarget(roomName) {
-
-    Memory.intel ??= { rooms: {} };
-
-    const exits = Game.map.describeExits(roomName);
-
-    for (const dir in exits) {
-        const target = exits[dir];
-        if (!Memory.intel.rooms[target]) {
-            return target;
-        }
-    }
-
-    return null;
-}
-
 function computeRoomDanger(room) {
 
     const hostiles = room.find(FIND_HOSTILE_CREEPS);
@@ -74,30 +58,63 @@ function scanRoom(room) {
         sources: r_sources.length,
         minerals,
         danger: r_danger,
+        hostile: false,
         value: r_value
     };
+}
+
+function exploreExits(creep) {
+
+    const exits = Game.map.describeExits(creep.room.name);
+
+    for (const dir in exits) {
+        const room = exits[dir];
+
+        if (!Memory.intel?.rooms?.[room]) {
+            creep.moveTo(new RoomPosition(25, 25, room));
+            return;
+        }
+    }
+
+    // si tout est connu → errance contrôlée
+    const randomDir = Math.floor(Math.random() * 4) + 1;
+    const exits2 = Game.map.describeExits(creep.room.name);
+
+    if (exits2[randomDir] && !Memory.intel[exits2[randomDir]].hostile) {
+        creep.moveTo(new RoomPosition(25, 25, exits2[randomDir]));
+    }
 }
 
 module.exports = {
 
     run(creep) {
 
-        if (!creep.memory.target) {
-            creep.memory.target = getScoutTarget(creep.room.name);
+        if (!creep.memory.lastRoom) {
+            creep.memory.lastRoom = creep.room.name
         }
 
+        if (creep.room.name !== creep.memory.lastRoom) {
+            creep.memory.lastRoom = creep.room.name
+        }
+
+        // =========================
+        // PAS DE TARGET = idle exploration
+        // =========================
         if (!creep.memory.target) {
-            creep.suicide();
+            this.exploreExits(creep);
             return;
         }
 
+        // =========================
+        // MOVE
+        // =========================
         if (creep.room.name !== creep.memory.target) {
             creep.moveTo(new RoomPosition(25, 25, creep.memory.target));
             return;
         }
 
         // =========================
-        // SCAN ROOM
+        // SCAN
         // =========================
         scanRoom(creep.room);
 

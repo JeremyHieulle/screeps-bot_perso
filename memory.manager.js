@@ -1,5 +1,19 @@
 const CURRENT_VERSION = 6;
 
+function handleDeath(name, mem) {
+
+    if (mem.role === 'scout') {
+
+        const lastRoom = mem.lastRoom;
+
+        if (lastRoom) {
+
+            Memory.intel[lastRoom] ??= {};
+            Memory.intel[lastRoom].hostile = true; 
+        }
+    }
+}
+
 module.exports = {
     initRoomMemory: function(roomName) {
         const mem = Memory.rooms[roomName];
@@ -59,6 +73,18 @@ module.exports = {
             this.initRoomMemory(roomName);
         }
 
+        for (const name in Memory.creeps) {
+    
+            if (!Game.creeps[name]) {
+    
+                const mem = Memory.creeps[name];
+    
+                // ici tu traites la mort
+                handleDeath(name, mem);
+    
+                delete Memory.creeps[name];
+            }
+        }
         // Vidage mémoire des creeps
         for(var name in Memory.creeps) {
             if(!Game.creeps[name]) {
