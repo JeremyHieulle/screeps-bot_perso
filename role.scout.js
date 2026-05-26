@@ -138,5 +138,7 @@ module.exports = {
             }
             return;
         }
+        
+        creep.moveTo(new RoomPosition(25, 25, target));
     }
 };
