@@ -234,7 +234,7 @@ module.exports = {
             const meta = room.memory.cache.structureMeta?.[link.id];
             if (!meta) continue;
 
-            if ( link && meta.tag === 'hub' ) {
+            if ( link && meta.tag === 'core' ) {
                 for ( const resourceType in link.store ) {
 
                     const amount = link.store[resourceType]
