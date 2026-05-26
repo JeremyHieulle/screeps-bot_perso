@@ -152,7 +152,7 @@ module.exports = {
 
             scanRoom(creep.room);
 
-            creep.memory.targetRoom = null;
+            creep.memory.target = null;
             creep.memory.state = "travel";
         }
     }
