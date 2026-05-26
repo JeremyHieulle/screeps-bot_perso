@@ -99,10 +99,10 @@ Creep.prototype.myRepair = function (x) {
     // console.log('Repairing ' + x + ', return: ' + this.repair(x));
 }
 
-Creep.prototype.myTransfer = function (x, y, amount) {
+Creep.prototype.myTransfer = function (x, y, desiredAmount) {
 
     y ??= RESOURCE_ENERGY;
-    amount ??= this.store[y];
+    const amount = (desiredAmount && desiredAmount <= this.store[y]) ? desiredAmount : this.store[y];
 
     const result = this.transfer(x, y, amount) 
     
