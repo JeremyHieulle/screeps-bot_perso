@@ -116,7 +116,7 @@ module.exports = {
         }
 
         if (!creep.memory.target) {
-            getScoutTarget(creep.room.name);
+            creep.memory.target = getScoutTarget(creep.room.name);
         }
 
         if (!creep.memory.target) {
