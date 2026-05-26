@@ -55,13 +55,14 @@ function update(room) {
         }
 
         if (job.type === 'withdraw') {
-            let cancel = 0;
-            for (resourceType in obj.store) {
-                if ( obj.store[resourceType] < 10 ) cancel = 1
-            }
-            if ( cancel === 1 ) delete mem.jobs[jobId]
-        }
 
+            const hasResources = Object.values(obj.store)
+                .some(amount => amount >= 10);
+
+            if (!hasResources) {
+                delete mem.jobs[jobId];
+            }
+        }
         // ==============================
         // 3. MAJ DES ASSIGNATIONS
         // ==============================
