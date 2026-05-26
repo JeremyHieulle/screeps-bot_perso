@@ -58,7 +58,7 @@ Room.prototype.hasExtractor = function(mineral) {
 
     const extractor = this.getCached(LOOK_STRUCTURES, STRUCTURE_EXTRACTOR)    
     
-    if (extractor) return true;
+    if (extractor.length > 0) return true;
 
     return false;
 }
@@ -397,7 +397,7 @@ Room.prototype.spawnCreepsNeeded = function() {
     const hasManager = this.getCache("logistics", "hasManager");
 
     if ( storage.length > 0 && coreLink && total('manager') < 1 ) {
-        this.spawnCreepForRole('manager');
+        this.spawnCreepForRole('manager', this.energyCapacityAvailable, {memory: { workPos: { x: this.plan.corePos.x, y: this.plan.corePos.y }}});
     } 
 
     // =============================
