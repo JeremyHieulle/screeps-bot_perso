@@ -1,3 +1,19 @@
+function getScoutTarget(roomName) {
+
+    Memory.intel ??= { rooms: {} };
+
+    const exits = Game.map.describeExits(roomName);
+
+    for (const dir in exits) {
+        const target = exits[dir];
+        if (!Memory.intel.rooms[target]) {
+            return target;
+        }
+    }
+
+    return null;
+}
+
 function computeRoomDanger(room) {
 
     const hostiles = room.find(FIND_HOSTILE_CREEPS);
@@ -79,7 +95,7 @@ function exploreExits(creep) {
     // si tout est connu → errance contrôlée
     const randomDir = Math.floor(Math.random() * 4) + 1;
     const exits2 = Game.map.describeExits(creep.room.name);
-    const hostile = Memory.intel[exits2[randomDir]].hostile || false
+    const hostile = Memory.intel[exits2[randomDir]]?.hostile || false
 
     if (exits2[randomDir] && !hostile) {
         creep.moveTo(new RoomPosition(25, 25, exits2[randomDir]));
@@ -98,6 +114,10 @@ module.exports = {
             creep.memory.lastRoom = creep.room.name
         }
 
+        if (!creep.memory.target) {
+            getScoutTarget(creep.room.name);
+        }
+        
         // =========================
         // PAS DE TARGET = idle exploration
         // =========================
@@ -105,6 +125,7 @@ module.exports = {
             exploreExits(creep);
             return;
         }
+
 
         // =========================
         // MOVE
