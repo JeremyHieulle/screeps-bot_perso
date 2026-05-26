@@ -82,7 +82,7 @@ Creep.prototype.myWithdraw = function (x, y, amount) {
     y ??= RESOURCE_ENERGY;
     amount ??= this.store[y];
 
-    if (this.withdraw(x, y) === ERR_NOT_IN_RANGE) {
+    if (this.withdraw(x, y, amount) === ERR_NOT_IN_RANGE) {
         this.moveTo(x);
     }
 }
@@ -104,7 +104,7 @@ Creep.prototype.myTransfer = function (x, y, amount) {
     y ??= RESOURCE_ENERGY;
     amount ??= this.store[y];
 
-    const result = this.transfer(x, y) 
+    const result = this.transfer(x, y, amount) 
     
     if ( result === ERR_NOT_IN_RANGE) {
         this.moveTo(x);
