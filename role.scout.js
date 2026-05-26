@@ -110,6 +110,9 @@ module.exports = {
         if (!creep.memory.lastRoom) {
             creep.memory.lastRoom = creep.room.name
         }
+        if (!creep.memory.state || creep.memory.state === "afk") {
+            creep.memory.state = "travel"
+        }
 
         if (creep.room.name !== creep.memory.lastRoom) {
             creep.memory.lastRoom = creep.room.name
@@ -119,23 +122,38 @@ module.exports = {
             creep.memory.target = getScoutTarget(creep.room.name);
         }
 
-        if (!creep.memory.target) {
+
+        const target = creep.memory.target
+
+        if (!target) {
             return; // idle naturel (ou reroll next tick)
         }
 
-        // =========================
-        // MOVE
-        // =========================
-        if (creep.room.name !== creep.memory.target) {
-            creep.moveTo(new RoomPosition(25, 25, creep.memory.target));
+        if (creep.memory.state === "travel") {
+
+            // si arrivé
+            if (creep.room.name === target && 
+                creep.pos.x !== 0 && creep.pos.x !== 49 &&
+                creep.pos.y !== 0 && creep.pos.y !== 49
+            ) {
+                creep.memory.state = "scan";
+                return;
+            }
+
+            creep.moveTo(new RoomPosition(25, 25, target));
+
             return;
         }
 
         // =========================
-        // SCAN
+        // SCAN STATE
         // =========================
-        scanRoom(creep.room);
+        if (creep.memory.state === "scan") {
 
-        creep.memory.target = null;
+            scanRoom(creep.room);
+
+            creep.memory.targetRoom = null;
+            creep.memory.state = "travel";
+        }
     }
 };
