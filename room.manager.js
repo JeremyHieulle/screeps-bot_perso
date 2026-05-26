@@ -285,7 +285,7 @@ module.exports = {
             room.updateCache();
         }
         
-        room.runlinks();
+        room.runLinks();
         
         // Spawn demand supply
         room.spawnCreepsNeeded();
