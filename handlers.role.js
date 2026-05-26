@@ -12,7 +12,8 @@ const handlers = {
     remoteMiner: require('role.remote.miner'),
     attacker: require('role.attacker'),
     manual: require('role.manual'),
-    scout: require('role.scout')
+    scout: require('role.scout'),
+    manager: require('role.manager')
 };
 
 module.exports = handlers;
