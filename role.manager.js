@@ -13,7 +13,7 @@ module.exports = {
             return
         }
         
-        if (job.type === 'haul' && creep.store[RESOURCE_ENERGY] === 0) {
+        if (job.type === 'haul' && creep.store[RESOURCE_ENERGY] < 200) {
             const storage = creep.room.getCached("structure", STRUCTURE_STORAGE)
             if (storage.length > 0)
                 creep.myWithdraw(storage[0]);
@@ -21,7 +21,7 @@ module.exports = {
             return;
         }
 
-        if (job.type === 'withdraw' && creep.store.getFreeCapacity() === 0) {
+        if (job.type === 'withdraw' && creep.store.getFreeCapacity() < 200) {
             const storage = creep.room.getCached("structure", STRUCTURE_STORAGE);
             if (storage.length > 0)
                 creep.myTransfer(storage[0]);
