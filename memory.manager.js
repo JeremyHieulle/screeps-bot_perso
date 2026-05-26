@@ -9,7 +9,7 @@ function handleDeath(name, mem) {
         if (lastRoom) {
 
             Memory.intel[lastRoom] ??= {};
-            Memory.intel[lastRoom].hostile = true; 
+            Memory.intel.rooms[lastRoom].hostile = true; 
         }
     }
 }
