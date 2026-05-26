@@ -399,7 +399,7 @@ Room.prototype.spawnCreepsNeeded = function() {
     if ( storage.length > 0 && coreLink && total('manager') < 1 ) {
         this.spawnCreepForRole('manager');
     } 
-    
+
     // =============================
     // LOGIC BUILDER / UPGRADER
     // =============================
@@ -480,6 +480,7 @@ Room.prototype.getJobTypeForRole = function (role) {
         case 'hauler': return ['haul','pickup','withdraw'];
         case 'upgrader': return ['upgrade'];
         case 'builder': return ['build','repair'];
+        case 'manager': return ['haul','withdraw'];
         default: false;
     }  
 }
