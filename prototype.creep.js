@@ -52,18 +52,18 @@ Creep.prototype.toggleWorkingState = function () {
 }
 
 Creep.prototype.myHarvest = function (source) {
-    if (this.getActiveBodyparts(WORK) === 0) {
-        this.say(`I can't 🏭`);   
-        return;
-    }
 
     const result = this.harvest(source);
 
     if (result === ERR_NOT_IN_RANGE) {
         this.moveTo(source);
-    } else {
-        return result;
     }
+
+    if ( result === ERR_NO_BODYPART ) {
+        this.say(`I can't 🏭`);   
+    }
+
+    return result;
 }
 
 Creep.prototype.myBuild = function (x) {
@@ -98,12 +98,16 @@ Creep.prototype.myRepair = function (x) {
 }
 
 Creep.prototype.myTransfer = function (x, y) {
+
     y ??= RESOURCE_ENERGY;
-    const transfer = this.transfer(x, y) 
-    if ( transfer === ERR_NOT_IN_RANGE) {
+
+    const result = this.transfer(x, y) 
+    
+    if ( result === ERR_NOT_IN_RANGE) {
         this.moveTo(x);
     }
-    return transfer
+
+    return result
 }
 
 Creep.prototype.myUpgrade = function (x) {

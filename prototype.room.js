@@ -137,34 +137,6 @@ Room.prototype.getCore = function () {
     return core
 }
 
-// Obtenir un objet à une position donnée dans la salle
-Room.prototype.getObjectByPos = function (...args) {
-
-    let pos, lookType, predicate;
-
-    if (args[0] instanceof RoomPosition) {
-        // signature (pos, lookType, predicate)
-        pos = args[0];
-        lookType = args[1];
-        predicate = args[2];
-    } else {
-        // signature (x, y, lookType, predicate)
-        pos = new RoomPosition(args[0], args[1], this.name);
-        lookType = args[2];
-        predicate = args[3];
-    }
-
-    const objects = this.lookForAt(lookType, pos);
-
-    for (const o of objects) {
-        if (!predicate || predicate(o)) {
-            return o;
-        }
-    }
-
-    return null;
-};
-
 Room.prototype.requestJob = function (creep) {
     creep.memory.jobId ??= null;
 
@@ -240,93 +212,6 @@ Room.prototype.requestJob = function (creep) {
     job.assignedTick = Game.time;
 
     return true;
-};
-
-// Assigner les jobs aux creeps disponibles selon la priorité métier et spawner si nécessaire
-Room.prototype.assignJobs = function () {
-
-    const spawn = this.find(FIND_MY_SPAWNS)[0];
-    const jobs = Object.values(this.memory.jobs);
-    
-    const harvestJobs = jobs.filter(j => j.type === 'harvest')
-        .sort((a, b) =>
-            spawn.pos.getRangeTo(a.pos) -
-            spawn.pos.getRangeTo(b.pos)
-        );
-
-    const haulJobs = jobs.filter(j => j.type === 'haul')
-        .sort((a, b) =>
-            spawn.pos.getRangeTo(a.pos) -
-            spawn.pos.getRangeTo(b.pos)
-        );
-
-    const upgradeJobs = jobs.filter(j => j.type === 'upgrade');
-    const repairJobs = jobs.filter(j => j.type === 'repair');
-    const otherJobs = jobs.filter(j => !['harvest', 'haul', 'upgrade', 'repair'].includes(j.type));
-
-    // Priorité : harvest
-    for (const job of harvestJobs) {
-        if (job.assigned) continue;
-        this.assignJob(job, 'harvester');
-    }
-
-    // Priorité : haul
-    for (const job of haulJobs) {
-        if (job.assigned) continue;
-
-        const role = this.getRoleForJob(job);
-        this.assignJob(job, role);
-    }
-
-    // Priorité : upgrade
-    for (const job of upgradeJobs) {
-        if (job.assigned) continue;
-
-        const role = this.getRoleForJob(job);
-        this.assignJob(job, role);
-    }
-
-    // Priorité : repair
-    for (const job of repairJobs) {
-        if (job.assigned) continue;
-
-        const role = this.getRoleForJob(job);
-        this.assignJob(job, role);
-    }
-
-    // Priorité : autres
-    for (const job of otherJobs) {
-        if (job.assigned) continue;
-
-        const role = this.getRoleForJob(job);
-        this.assignJob(job, role);
-    }
-};
-
-// Assigner un job spécifique au meilleur creep disponible
-Room.prototype.assignJob = function (job, role) {
-
-    const creeps = this.find(FIND_MY_CREEPS);
-
-    let bestCreep = null;
-    let bestScore = Infinity;
-
-    for (const creep of creeps) {
-        if (creep.memory.jobId) continue;
-        if (creep.memory.role !== role) continue;
-
-        const dist = creep.pos.getRangeTo(job.pos.x, job.pos.y);
-
-        if (dist < bestScore) {
-            bestScore = dist;
-            bestCreep = creep;
-        }
-    }
-    if (bestCreep) {
-        console.log(`bestCreep ${bestCreep.name} assigned for ${job.id}`);
-        job.assigned = bestCreep.name;
-        bestCreep.memory.jobId = job.id;
-    }
 };
 
 Room.prototype.spawnCreepsNeeded = function() {
@@ -531,20 +416,6 @@ Room.prototype.spawnCreepForRole = function(role, max, opts = {}) {
     });
 };
 
-// Obtenir le rôle approprié pour un job
-Room.prototype.getRoleForJob = function (job) {
-
-      switch(job.type) {
-        case 'harvest': return 'harvester';
-        case 'haul': return 'hauler';
-        case 'upgrade': return 'upgrader';
-        case 'build': return 'builder';
-        case 'repair': return 'builder';
-        case 'withdraw': return 'hauler';
-        default: false;
-    }
-}
-
 Room.prototype.getJobTypeForRole = function (role) {
 
       switch(role) {
@@ -555,19 +426,6 @@ Room.prototype.getJobTypeForRole = function (role) {
         default: false;
     }  
 }
-
-Room.prototype.getJobPriority = function(job) {
-
-    switch(job.type) {
-        case 'harvest': return 1;
-        case 'pickup': return 20;
-        case 'haul': return 2;
-        case 'upgrade': return 3;
-        case 'build': return 5;
-        case 'repair': return 5;
-        default: return 10;
-    }
-};
 
 Room.prototype.getRolePriority = function(role) {
 

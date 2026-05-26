@@ -288,9 +288,6 @@ module.exports = {
         // Spawn demand supply
         room.spawnCreepsNeeded();
 
-        // Assignation des jobs
-        // room.assignJobs();
-
         // Remplacement des jobs fixes (dis au creep de rejoindre l'autre creep)
         const creeps = room.find(FIND_MY_CREEPS);
         for ( const creep of creeps ) {
