@@ -39,7 +39,7 @@ module.exports = {
         }
 
         const hostiles_structures = creep.room.find(FIND_HOSTILE_STRUCTURES).filter(c => !isAlly(c.owner.username));
-        if (hostiles.length > 0 ) {
+        if (hostiles_structures.length > 0 ) {
             if (creep.attack(hostiles_structures[0]) === ERR_NOT_IN_RANGE) {
                 creep.moveTo(hostiles_structures[0])
             };
