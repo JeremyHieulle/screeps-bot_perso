@@ -14,7 +14,7 @@ module.exports = {
                 const targetsToRepair = 
                 creep.pos.findClosestByRange(FIND_STRUCTURES, 
                     { filter: o => o.hitsMax - o.hits > 0 &&
-                        o.structureType !== STRUCTURE_WALL
+                        o.hits < 1000000
                      }
                 );
 
