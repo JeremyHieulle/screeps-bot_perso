@@ -2,23 +2,21 @@ En cours :
 
 Relativement important : 
 🛑 Traffic manager
-🛑 Nettoyer le code déplacement storage une fois terminé
 
 A faire :
-📌 Alliance code avec D3Matt
 🟡 Remote mining (fait minimaliste)
 💊 Construire source container plus tôt.
-💊 les builders spawn en double? à surveiller et corriger le cas échéant
-📌 Surveiller heatmap
 📌 Défenses basiques avant towers?
 📌 Refonte GetEnergy()
-📌 Ajuster haulsourcelength avec link
-📌 Ajuster haulerneeded sur taille hauler
+📌 Ajuster le besoin en haul
 📌 Déterminer economie avant storage
 📌 remplir hauler plus efficacement avant de faire un job
-🧲 Attention : Build roads/structures désactivés.
+
 
 Fait :
+📌 Surveiller heatmap
+?? les builders spawn en double? à surveiller et corriger le cas échéant
+🟢 Alliance code avec D3Matt
 🟢 Ne pas construire mineral container avant extracteur
 🟡 Ajuster builder et upgrader sur economie (fait juste pour upgrader)
 🟢 Checker la prise de job (hauler aller retour)
