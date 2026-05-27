@@ -349,12 +349,12 @@ Room.prototype.spawnCreepsNeeded = function() {
     // BOOTSTRAP PHASE
     // =============================
     if (total('harvester') === 0) {
-        this.spawnCreepForRole('harvester', 300, { priority: 0 });
+        this.spawnCreepForRole('harvester', Math.max(300, this.energyAvailable), { priority: 0 });
         return;
     }
 
-    if (total('hauler') < 2) {
-        this.spawnCreepForRole('hauler', 300, { priority: 1 });
+    if (total('hauler') < 1 ) {
+        this.spawnCreepForRole('hauler', Math.max(300, this.energyAvailable), { priority: 1 });
         return;
     }
 
