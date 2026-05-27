@@ -420,11 +420,8 @@ Room.prototype.spawnCreepsNeeded = function() {
         upgraderMaxCost = this.energyCapacityAvailable;
     }
 
-    const urgentRepair = this.find(FIND_STRUCTURES, {
-        filter: s =>
-            s.hits < s.hitsMax / 2 &&
-            s.structureType !== STRUCTURE_WALL
-    });
+    const urgentRepair = Object.values(this.memory.jobs || {})
+    .filter(job => job.type === 'repair');
 
     const roadSites = this.find(FIND_CONSTRUCTION_SITES, {
         filter: s => s.structureType === STRUCTURE_ROAD
@@ -484,7 +481,7 @@ Room.prototype.spawnCreepForRole = function(role, max, opts = {}) {
 
     const energyByRole = {
         hauler: this.energyCapacityAvailable * 2 / 3,
-        builder: 600,
+        builder: 2400,
         upgrader: 1800,
         // remoteHauler: 1500,
         scout: 2100,
