@@ -72,9 +72,16 @@ function update(room) {
         }
 
         if (job.type === 'repair') {
-            const damage = obj.hitsMax - obj.hits;
-            if (damage > 0) job.amount = damage;
-            else delete mem.jobs[jobId];
+        
+            const targetHits = Math.min(obj.hitsMax, 600000);
+        
+            const damage = targetHits - obj.hits;
+        
+            if (damage > 0) {
+                job.amount = damage;
+            } else {
+                delete mem.jobs[jobId];
+            }
         }
 
         // --- legacy
@@ -332,7 +339,8 @@ module.exports = {
         const repairs = room.find(FIND_STRUCTURES, {
 				filter: (structure) => {
 					return structure.hits < structure.hitsMax / 2 &&
-                    structure.structureType !== STRUCTURE_WALL;
+					structure.hits < 500000
+                    //structure.structureType !== STRUCTURE_WALL;
 				}
 			});
 
