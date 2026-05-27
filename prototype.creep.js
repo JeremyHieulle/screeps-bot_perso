@@ -247,7 +247,7 @@ Creep.prototype.getEnergy = function (options = {}) {
         pickup: 0.8,
         tombstone: 1,
         ruin: 1,
-        link : 1.2
+        link : 2.5
     };
 
     const { excludeIds = [], weights = {} } = options;
@@ -484,7 +484,7 @@ Creep.prototype.doJob = function(job) {
             for (const resourceType in target.store)
                 this.myWithdraw(target, resourceType, job.amount);
         } else {
-            this.say('pickup ❓');
+            this.say('withdraw ❓');
         }
     }
 
@@ -522,5 +522,6 @@ Creep.prototype.doJob = function(job) {
         } else {
             this.say('repair ❓');
         }
+
     }
 }
