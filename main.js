@@ -8,7 +8,7 @@ const roomDefense = require('room.defense');
 const jobManager = require('job.manager');
 const economyManager = require('room.economy');
 const analyzer = require("room.analyzer");
-
+const marketManager = require('market.manager');
 const roles = {
     harvester: require('role.harvester'),
     builder: require('role.builder'),
@@ -24,8 +24,27 @@ function getCpu() {
 }
 
 function printCpu(sCPU, obj, task) {
+    Memory.stats ??= {};
+    Memory.stats.cpu ??= {};
+    Memory.stats.cpu[obj] ??= {};
+    
+    const stats = Memory.stats.cpu[obj]
+    
+    const alpha = 0.1;
+    
     const cpu = Game.cpu.getUsed() - sCPU
-    // console.log(`${obj} used ${cpu} cpu for ${task}`)
+    
+    if (stats.avg == null) {
+        stats.avg = cpu;
+    } else {
+        stats.avg = stats.avg * (1 - alpha) + cpu * alpha;
+    }
+    
+    stats.peak = Math.max(stats.peak || 0, cpu);
+    stats.last = cpu;
+    stats.tick = Game.time;
+    
+    //console.log(`${obj} used ${cpu} cpu for ${task}`)
 }
 
 function measureCpu(what, callback) {
@@ -37,24 +56,29 @@ function measureCpu(what, callback) {
 
 module.exports.loop = function () {
 
+    const cpuStart = getCpu();
     // ==============================
     // 0. MEMORY MANAGER / RESET
     // ==============================
+    const totalMemoryCpu = getCpu();
 
     memoryManager.run();
 
+    printCpu(totalMemoryCpu, '0. MEMORY MANAGER / RESET', 'running' )
 
     // ==============================
-    // 0. GLOBAL IMPORTANT
+    // 1. GLOBAL IMPORTANT
     // ==============================
+    const globalWorkCpu = getCpu();
 
     diplomacy.run();
 
+    printCpu(globalWorkCpu, '1. GLOBAL IMPORTANT', 'running' )
 
     // ==============================
-    // 1. ROOM LOGIC
+    // 2. ROOM LOGIC
     // ==============================
-
+    const totalRoomCpu = getCpu();
     for (let roomName in Game.rooms) {
         const room = Game.rooms[roomName];
 
@@ -91,17 +115,18 @@ module.exports.loop = function () {
         spawnerManager.run(room);
         printCpu(spwncpu, room, 'spawnerManager');
     }
-
-
+    
+    printCpu(totalRoomCpu, '2. ROOM LOGIC', 'running' )
 
     // ==============================
-    // 2. ACTIONS TEMPORAIRES
+    // 3. ACTIONS TEMPORAIRES
     // ==============================
 
 
     // ==============================
     // 4. CREEP LOGIC
     // ==============================
+    const cpuCreepsTotal = getCpu()
 
     const creepCount = {};
     const hitsMin = {};
@@ -123,20 +148,18 @@ module.exports.loop = function () {
 
         creep.run();
 
-        // printCpu(creepCpu, `${creep}`, 'yada yada')
     }
 
     const total = Object.values(creepCount)
     .reduce((sum, n) => sum + n, 0);
-    printCpu(creepsCpu, `${total} creeps`, 'running')
 
-
+    printCpu(cpuCreepsTotal, `4. CREEP LOGIC`, 'running ${total} creeps')
 
     // ==============================
-    // 4. SPAWN GLOBAL ROLES
+    // 5. SPAWN GLOBAL ROLES
     // ==============================
-    
-    
+    const cpuGlobalSpawnTotal = getCpu()
+
     const remoteMiner = Object.values(Game.creeps)
         .filter(c => c.memory.role === 'remoteMiner');
 
@@ -172,109 +195,27 @@ module.exports.loop = function () {
     //         }
     //     }
     // }
+    
+    printCpu(cpuGlobalSpawnTotal, '5. SPAWN GLOBAL ROLES', 'running')
 
 
     // ==============================
-    // 5. TEST MARKET
+    // 6. TEST MARKET
     // ==============================
-    // if (Game.time % 20 === 0) {
-    // const marketcpu = getCpu();
-    //     const fromRoom = "W36S38";
-    //     const resourceType = RESOURCE_ENERGY;
-    //     const amount = 1000;
+    // const cpuMarketTotal = getCpu()
 
-    //     // ==============================
-    //     // 1. BEST SELL ORDER (BUY ENERGY)
-    //     // ==============================
-    //     const sellOrders = Game.market.getAllOrders(o =>
-    //         o.type === ORDER_SELL &&
-    //         o.resourceType === resourceType
-    //     );
+    marketManager.run();
 
-    //     const bestSell = _.min(sellOrders, o => {
-
-    //         const qty = Math.min(amount, o.remainingAmount);
-
-    //         const transferCost = Game.market.calcTransactionCost(qty, fromRoom, o.roomName);
-
-    //         const cost = (o.price * qty) + transferCost;
-
-    //         return cost;
-    //     });
-
-    //     // énergie réellement obtenue après coût
-    //     let effectiveEnergy = 0;
-    //     let buyCost = 0;
-
-    //     if (bestSell) {
-    //         const qty = Math.min(amount, bestSell.remainingAmount);
-
-    //         buyCost = (bestSell.price * qty)
-    //             + Game.market.calcTransactionCost(qty, fromRoom, bestSell.roomName);
-
-    //         effectiveEnergy = qty - Game.market.calcTransactionCost(qty, fromRoom, bestSell.roomName);
-    //     }
-
-    //     // ==============================
-    //     // 2. BEST BUY ORDER (SELL ENERGY)
-    //     // ==============================
-    //     const buyOrders = Game.market.getAllOrders(o =>
-    //         o.type === ORDER_BUY &&
-    //         o.resourceType === resourceType
-    //     );
-
-    //     const bestBuy = _.max(buyOrders, o => {
-
-    //         const qty = Math.min(effectiveEnergy, o.remainingAmount);
-
-    //         const transferCost = Game.market.calcTransactionCost(qty, fromRoom, o.roomName);
-
-    //         const revenue = (o.price * qty) - transferCost;
-
-    //         return revenue;
-    //     });
-
-    //     // ==============================
-    //     // 3. FINAL PROFIT
-    //     // ==============================
-    //     if (bestSell && bestBuy) {
-
-    //         const sellQty = Math.min(amount, bestSell.remainingAmount);
-    //         const buyQty = Math.min(effectiveEnergy, bestBuy.remainingAmount);
-
-    //         const finalSellRevenue =
-    //             (bestBuy.price * buyQty)
-    //             - Game.market.calcTransactionCost(buyQty, fromRoom, bestBuy.roomName);
-
-    //         const initialCost =
-    //             (bestSell.price * sellQty)
-    //             + Game.market.calcTransactionCost(sellQty, fromRoom, bestSell.roomName);
-
-    //         const profit = finalSellRevenue - initialCost;
-
-    //         console.log(
-    //     `MARKET ARBITRAGE
-    //     BUY ENERGY FROM SELL ORDER:
-    //     id:${bestSell.id}
-    //     cost:${initialCost}
-    //     energy:${effectiveEnergy}
-
-    //     SELL ENERGY TO BUY ORDER:
-    //     id:${bestBuy.id}
-    //     revenue:${finalSellRevenue}
-
-    //     PROFIT:${profit}`
-    //         );
-    //     }
-    // console.log(`Marker took ${Game.cpu.getUsed() - marketcpu} cpu`)
-    // }
+    // printCpu(cpuOtherRoles, '6. TEST MARKET', 'running')
 
     // ==============================
-    // 6. CE BOT NE CONSOMME PAS ASSEZ DE CPU. AIDONS-LE UN PEU
+    // 7. CE BOT NE CONSOMME PAS ASSEZ DE CPU. AIDONS-LE UN PEU
     // ==============================
 
     if (Game.cpu.generatePixel && Game.cpu.bucket >= 10000) {
         console.log('generating a pixel');
         Game.cpu.generatePixel();
     }
+    
+    printCpu(cpuStart, 'Game Loop', 'running')
 }
