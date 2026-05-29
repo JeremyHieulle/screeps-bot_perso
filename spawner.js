@@ -24,15 +24,28 @@ module.exports = {
         //     return;
         // }
         
-        const spawn = room.find(FIND_MY_SPAWNS)[0];
-        if (!spawn) return;
-
-        if (spawn.spawning) {
-            const spawningCreep = Game.creeps[spawn.spawning.name];
-            spawn.room.visual.text('🛠️' + spawningCreep.memory.role,
-                spawn.pos.x + 1, spawn.pos.y, { align: 'left', opacity: 0.7 });
-            return;
+        const spawns = room.find(FIND_MY_SPAWNS);
+        let spawn = null;
+        if ( spawns.length > 0 ) {
+            
+            for (spawn of spawns) {
+                
+                if (!spawn) continue;
+                
+                if (spawn.spawning) {
+                    const spawningCreep = Game.creeps[spawn.spawning.name];
+                    spawn.room.visual.text(
+                        '🛠️' + spawningCreep.memory.role,
+                        spawn.pos.x + 1,
+                        spawn.pos.y,
+                        { align: 'left', opacity: 0.7 }
+                    );
+                    continue;
+                }
+            }
         }
+
+
 
         queue.sort((a,b)=>a.priority-b.priority);
 
