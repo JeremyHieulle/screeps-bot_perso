@@ -15,7 +15,17 @@ module.exports = {
             source.energy === 0 && 
             source.ticksToRegeneration > 20 
         ) {
-
+            if (creep.store[RESOURCE_ENERGY] === 0) {
+                const drop = creep.room.lookForAt(LOOK_RESOURCES, creep)
+                if (drop.length > 0) { 
+                    creep.pickup(drop[0])
+                    return
+                }
+                const s = creep.room.lookForAt(LOOK_STRUCTURES, creep)
+                if (s.length > 0 && s[0].structureType === STRUCTURE_CONTAINER && s[0].store[RESOURCE_ENERGY] > 0) {
+                    creep.withdraw(s[0], RESOURCE_ENERGY)
+                }
+            } 
             const builds = creep.room.find(FIND_CONSTRUCTION_SITES)
 
             if ( builds.length > 0 && creep.store[RESOURCE_ENERGY] > 0 ) {
