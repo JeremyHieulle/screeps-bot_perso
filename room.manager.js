@@ -294,22 +294,30 @@ module.exports = {
 
         // Remplacement des jobs fixes (dis au creep de rejoindre l'autre creep)
         const creeps = room.find(FIND_MY_CREEPS);
-        for ( const creep of creeps ) {
-            // Recherche des creeps à remplacer
-            if (creep.ticksToLive < 100) {
+        const assignedAsReplacement = new Set(
+            creeps
+                .filter(c => c.memory.replaces)
+                .map(c => c.memory.replaces) // les noms des creeps déjà couverts
+        );
+
+        for (const creep of creeps) {
+            if (creep.ticksToLive < 100 && !assignedAsReplacement.has(creep.name)) {
                 const replacement = creep.pos.findClosestByRange(FIND_MY_CREEPS, {
                     filter: c =>
                         c.memory.role === creep.memory.role &&
-                        !c.memory.jobId
+                        !c.memory.jobId &&
+                        !c.memory.replaces
                 });
 
-                // Affectation du remplacement
-                if ( replacement ) { replacement.memory.replaces = creep.name }
+                if (replacement) {
+                    replacement.memory.replaces = creep.name;
+                    assignedAsReplacement.add(creep.name);
+                }
             }
         }
         
         room.runRemotes();
-        
+
         mem.state ??= 'planner'
 
         if (mem.state === 'planner') {
