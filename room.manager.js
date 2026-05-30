@@ -308,6 +308,8 @@ module.exports = {
             }
         }
         
+        room.runRemotes();
+        
         mem.state ??= 'planner'
 
         if (mem.state === 'planner') {
