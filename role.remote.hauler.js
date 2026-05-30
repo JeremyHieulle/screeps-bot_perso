@@ -15,7 +15,7 @@ module.exports = {
         if (creep.memory.working) {
 
             if (creep.room.name !== homeRoom) {
-            const pos = new RoomPosition(25, 25, homeRoom);
+            const pos = new RoomPosition(25, 25, homeRoom.name);
             creep.moveTo(pos, { reusePath: 50, range: 2 });
                 return;
             }
