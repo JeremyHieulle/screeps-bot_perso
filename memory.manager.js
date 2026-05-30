@@ -62,10 +62,13 @@ module.exports = {
     },
 
     run: function() {
-
+        
         Memory.rooms ??= {};
 
         for (const roomName in Game.rooms) {
+            
+            if (!Game.rooms[roomName]?.controller?.my) continue;
+
             if (!Memory.rooms[roomName]) {
                 Memory.rooms[roomName] = {};
             }
@@ -82,12 +85,6 @@ module.exports = {
                 // ici tu traites la mort
                 handleDeath(name, mem);
     
-                delete Memory.creeps[name];
-            }
-        }
-        // Vidage mémoire des creeps
-        for(var name in Memory.creeps) {
-            if(!Game.creeps[name]) {
                 delete Memory.creeps[name];
             }
         }
