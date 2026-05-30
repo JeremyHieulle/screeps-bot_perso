@@ -604,10 +604,9 @@ function calcHaulerEnergy(distance, roomEnergyCapacity) {
     return Math.min(cost, roomEnergyCapacity);
 }
 
-function getAssignedCreeps(roomName, role, sourceId = null) {
+function getAssignedCreeps(role, sourceId = null) {
     return Object.values(Game.creeps).filter(c => {
         if (c.memory.role !== role) return false;
-        if (c.memory.homeRoom !== roomName) return false;
         if (sourceId && c.memory.sourceId !== sourceId) return false;
         return true;
     });
@@ -674,7 +673,7 @@ function spawnForRemote(room, remoteName) {
         // =============================
         // REMOTE MINER
         // =============================
-        const miners = getAssignedCreeps(room.name, REMOTE_MINER_ROLE, source.id);
+        const miners = getAssignedCreeps(REMOTE_MINER_ROLE, source.id);
 
         if (miners.length === 0) {
             room.spawnCreepForRole(REMOTE_MINER_ROLE, room.energyCapacityAvailable, {
@@ -692,7 +691,7 @@ function spawnForRemote(room, remoteName) {
         // =============================
         if (!data.containerId && miners.length === 0) continue;
 
-        const haulers = getAssignedCreeps(room.name, REMOTE_HAULER_ROLE, source.id);
+        const haulers = getAssignedCreeps(REMOTE_HAULER_ROLE, source.id);
         const haulersNeeded = Math.max(1, Math.ceil(data.distance / 25));
 
         if (haulers.length < haulersNeeded) {
