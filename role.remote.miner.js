@@ -11,9 +11,8 @@ module.exports = {
         // DEPLACEMENT VERS LA ROOM
         // =============================
         if (creep.room.name !== targetRoom) {
-            const exitDir = Game.map.findExit(creep.room, targetRoom);
-            const exit = creep.pos.findClosestByRange(exitDir);
-            creep.moveTo(exit, { reusePath: 50 });
+            const pos = new RoomPosition(creep.memory.sourcePos.x, creep.memory.sourcePos.y, targetRoom);
+            creep.moveTo(pos, { reusePath: 50,  range: 1 });
             return;
         }
 
