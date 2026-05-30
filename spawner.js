@@ -25,10 +25,9 @@ module.exports = {
         // }
         
         const spawns = room.find(FIND_MY_SPAWNS);
-        let spawn = null;
         if ( spawns.length > 0 ) {
             
-            for (spawn of spawns) {
+            for (const spawn of spawns) {
                 
                 if (!spawn) continue;
                 
@@ -42,34 +41,32 @@ module.exports = {
                     );
                     continue;
                 }
+                
+                queue.sort((a,b)=>a.priority-b.priority);
+        
+                const request = queue[0];
+        
+                if (_.sum(request.body, p=>BODYPART_COST[p]) > room.energyAvailable)
+                    return;
+        
+                const result = spawn.spawnCreep(request.body, request.name, {
+                    memory:{
+                        role:request.role,
+                        jobId:request.jobId,
+                        working:false,
+                        bornIn:spawn.name,
+                        state:'afk',
+                        ...request.pushMemory
+                    }
+                });
+                if (result === OK) {
+                    queue.shift();
+                    console.log(`Spawning ${request.name} at ${room.name} with body: ${request.body}`)
+                    return
+                } else {
+                    console.log(`Echec spawn ${request.name} at ${room.name} (${result})`)
+                }
             }
-        }
-
-
-
-        queue.sort((a,b)=>a.priority-b.priority);
-
-        const request = queue[0];
-
-        if (_.sum(request.body, p=>BODYPART_COST[p]) > room.energyAvailable)
-            return;
-
-        const result = spawn.spawnCreep(request.body, request.name, {
-            memory:{
-                role:request.role,
-                jobId:request.jobId,
-                working:false,
-                bornIn:spawn.name,
-                state:'afk',
-                ...request.pushMemory
-            }
-        });
-        if (result === OK) {
-            queue.shift();
-            console.log(`Spawning ${request.name} at ${room.name} with body: ${request.body}`)
-            return
-        } else {
-            console.log(`Echec spawn ${request.name} at ${room.name} (${result})`)
         }
     },
 };
