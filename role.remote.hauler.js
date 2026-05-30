@@ -35,19 +35,20 @@ module.exports = {
             }
 
         } else {
-
+            const targetRoom = Game.rooms[haulFrom.roomName];
+            if (targetRoom) {
+                const drop = Game.rooms[haulFrom.roomName].find(FIND_DROPPED_RESOURCES)
+                if (drop.length > 0) {
+                    creep.myPickup(drop[0]);
+                    return;
+                }
+            }
             if ( !creep.pos.isEqualTo(haulFrom) ) {
                 creep.moveTo(haulFrom)
                 return;
             }
 
         } 
-
-        const drop = Game.rooms[haulFrom.roomName].find(FIND_DROPPED_RESOURCES)
-        if (drop.length > 0) {
-            creep.myPickup(drop[0]);
-            return;
-        }
 
         const container = Game.rooms[haulFrom.roomName].find(FIND_STRUCTURES, {
             filter: s => ( s.structureType === STRUCTURE_CONTAINER ||
