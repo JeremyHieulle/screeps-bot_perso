@@ -597,11 +597,27 @@ const REMOTE_HAULER_ROLE = 'remoteHauler';
 // HELPERS
 // =============================
 
-function calcHaulerEnergy(distance, roomEnergyCapacity) {
-    const carryUnits = Math.ceil(distance / 5);
-    const moveUnits = carryUnits;
-    const cost = (carryUnits * BODYPART_COST[CARRY]) + (moveUnits * BODYPART_COST[MOVE]);
-    return Math.min(cost, roomEnergyCapacity);
+function calcRemoteHauling(distance, roomEnergyCapacity) {
+
+    // Flux à couvrir : 10e/tick par source, aller-retour = 2*distance ticks
+    // CARRY needed = ceil(2 * distance * 10 / 50)
+    const totalCarry = Math.ceil(2 * distance * 10 / 50);
+    const totalMove = totalCarry;
+
+    const costPerPair = BODYPART_COST[CARRY] + BODYPART_COST[MOVE]; // 100e
+    const totalCost = (totalCarry + totalMove) * costPerPair / 2; // évite double comptage
+
+    // Parts par hauler : limité par 50 parts max et roomEnergyCapacity
+    const maxCarryByParts = Math.floor(25); // 50 parts / 2 (carry+move)
+    const maxCarryByEnergy = Math.floor(roomEnergyCapacity / costPerPair);
+    const carryPerHauler = Math.min(maxCarryByParts, maxCarryByEnergy);
+
+    const energyPerHauler = carryPerHauler * costPerPair;
+
+    // Nombre de haulers nécessaires
+    const haulerCount = Math.ceil(totalCarry / carryPerHauler);
+
+    return { haulerCount, energyPerHauler };
 }
 
 function getAssignedCreeps(role, sourceId = null) {
@@ -692,11 +708,11 @@ function spawnForRemote(room, remoteName) {
         if (!data.containerId && miners.length === 0) continue;
 
         const haulers = getAssignedCreeps(REMOTE_HAULER_ROLE, source.id);
-        const haulersNeeded = Math.max(1, Math.ceil(data.distance / 25));
+        const { haulerCount, energyPerHauler } = calcRemoteHauling(data.distance, room.energyCapacityAvailable);
 
-        if (haulers.length < haulersNeeded) {
-            const haulerEnergy = calcHaulerEnergy(data.distance, room.energyCapacityAvailable);
-            room.spawnCreepForRole(REMOTE_HAULER_ROLE, haulerEnergy, {
+
+        if (haulers.length < haulerCount) {
+            room.spawnCreepForRole(REMOTE_HAULER_ROLE, energyPerHauler, {
                 memory: {
                     targetRoom: remoteName,
                     sourceId: source.id,
