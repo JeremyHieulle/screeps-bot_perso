@@ -160,31 +160,6 @@ module.exports.loop = function () {
     // ==============================
     const cpuGlobalSpawnTotal = getCpu()
 
-    const remoteMiner = Object.values(Game.creeps)
-        .filter(c => c.memory.role === 'remoteMiner');
-
-    if ( remoteMiner.length < 1 ) {
-        Game.rooms['W36S38'].spawnCreepForRole('remoteMiner');
-    }
-     
-    // if ( Game.time % 600 === 0 ) { 
-    //     const room = Game.rooms['W37S37'];
-    //     room.spawnCreepForRole('drainer');
-    // }
-    // if ( Game.time % 700 === 0 ) { 
-    //     const room = Game.rooms['W36S38'];
-    //     room.spawnCreepForRole('drainerHealer');
-    // }
-
-    // if ( Game.time % 1400 === 0 ) { 
-    //     const room = Game.rooms['W37S37'];
-    //     room.spawnCreepForRole('drainerHealer');
-    // }
-
-
-    if ((Game.time % 1500 ) - 78 === 0 ) {
-        Game.rooms['W36S38'].spawnCreepForRole('remoteHauler', 1300, { memory: { haulPos: { x: 43, y: 17, roomName: 'W37S38'}}})
-    }
     // const enemyRoom = Game.rooms['W38S38'];
     // if ( enemyRoom ) {
     //     const enemySafeMode = Game.rooms['W38S38'].controller.safeMode
