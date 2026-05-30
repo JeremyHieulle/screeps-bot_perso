@@ -277,6 +277,8 @@ module.exports = {
         const mem = room.memory;
         const cache = room.memory.cache
         
+        if (Game.time % 25 === 0) room.recordMetricsTest();
+        
         if (!cache || Game.time % 500 === 0) {
             room.buildCache();
         }
