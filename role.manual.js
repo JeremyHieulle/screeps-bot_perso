@@ -1,96 +1,52 @@
 module.exports = {
 
     run: function(creep, job) {
-
-        creep.toggleWorkingState();
+        if (creep.hits < 1500 ) {
+            creep.moveTo(new RoomPosition(48,19,'W36S38'))
+            return
+        }
         
-        if(!job) {
-            creep.say('🕹');
-            // const target = creep.pos.findClosestByPath(FIND_STRUCTURES, {
-            //     filter: s =>
-            //         s.structureType === STRUCTURE_EXTENSION
-            // });
-
-            // if (target) {
-            //     if (creep.dismantle(target) === ERR_NOT_IN_RANGE) {
-            //         creep.moveTo(target);
-            //     }
-            //     return;
-            // }
-            if (creep.memory.working) {
-                const target = Game.getObjectById('6a0d7cd7a9844d0013c548b6');
-                creep.build(target);
-            } else {
-                const target = Game.getObjectById('6a09bd8a3a3fd2304d6af0a3');
-                creep.myWithdraw(target, RESOURCE_ENERGY)
+        if (creep.memory.state === 'recycling') {
+            if(creep.pos.isNearTo(Game.spawns['Spawn1'])) {
+                Game.spawns['Spawn1'].recycleCreep(creep)
+                return;
             }
-            return;
+            creep.moveTo(new RoomPosition(24,23,'W36S38'))
+            return
+        }
+        
+        const pos = new RoomPosition(33,8,'W35S38');
+        
+        if (creep.room.name === pos.roomName) {
+            if (creep.memory.state === 'reserve') {
+                if (creep.reserveController(creep.room.controller) === ERR_NOT_IN_RANGE) {
+                    creep.moveTo(creep.room.controller)
+                }
+                return
+            }
             
-            if (creep.getActiveBodyparts(ATTACK) > 0) {
-                let target = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS, { 
-                    filter: function(object) {
-                        return object.getActiveBodyparts(ATTACK) > 0 && !isAlly(object.owner.username);
+            if ( creep.pos.x !== 0 && creep.pos.x !== 49 &&
+                creep.pos.y !== 0 && creep.pos.y !== 49
+            ) {
+                const target = creep.room.controller
+                
+                const result = creep.attackController(target)
+                    
+                if (result === ERR_NOT_IN_RANGE) creep.moveTo(target);
+                if (result === OK) {
+                    const owner = creep.room.controller.owner?.username
+                    if (owner && owner === 'Arta') {
+                        creep.memory.state = 'recycling'
+                    } else {
+                        creep.memory.state = 'reserve'
                     }
-                });
-                if (!target)
-                    target = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS).filter(c => !isAlly(c.owner.username));
-                if ( target && creep.pos.getRangeTo(target) < 50) {
-                    if(creep.attack(target) == ERR_NOT_IN_RANGE) {
-                        creep.moveTo(target);
-                    }
-                } else {
-                    creep.moveTo(Game.flags.manual);
                 }
             } else {
-                creep.moveTo(Game.flags.manual);
+                creep.moveTo(pos);
             }
-        } else {
-            creep.say('⁉scoutjob?')
+            return;
         }
-
-        // if (creep.memory.working) {
-        //     creep.say('🕹 🎒');
-        //     const terminal = creep.room.getCached("structure", STRUCTURE_TERMINAL);
-        //     if (terminal) {
-        //         for (const resourceType in creep.store) {
-        //             creep.myTransfer(terminal, resourceType);
-        //         }
-
-        //     }
-        // } else {
-        //     const storage = creep.room.findStorage();
-
-        //     if (storage) {
-        //         for (const resourceType in storage.store) {
-        //             creep.myWithdraw(storage, resourceType);
-        //         }
-        //         creep.say('🕹 ✨');
-        //         return;
-        //     }
-        //     creep.getEnergy();
-        // }
-
-
-        // if(!job) {
-        //     creep.say('🕹');
-        //     const target = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS, { 
-        //         filter: function(object) {
-        //             return object.getActiveBodyparts(ATTACK) > 0;
-        //         }
-        //     });
-
-        //     if ( target && creep.pos.getRangeTo(target) < 2) {
-        //         if(creep.attack(target) == ERR_NOT_IN_RANGE) {
-        //             creep.moveTo(target);
-        //         }
-        //     } else {
-        //         // if (creep.room.name === 'W37S37') {
-        //         //     creep.claimController(creep.room.controller);
-        //         // }
-        //         creep.moveTo(creep.room.controller);
-        //     }
-        // } else {
-        //     creep.say('claimjob?')
-        // }
+        
+        creep.moveTo(pos);
     }
 }
