@@ -95,7 +95,7 @@ function scanRoom(room) {
         lastSeen: Game.time,
         owner: room.controller?.owner?.username || null,
         rcl: r_controllerLevel,
-        sources: r_sources.length,
+        sources: r_sources.map(s => ({ id: s.id, pos: { x: s.pos.x, y: s.pos.y } })),
         minerals,
         danger: r_danger,
         hostile: false,

@@ -589,6 +589,142 @@ Room.prototype.runLinks = function () {
     }
 };
 
+
+const REMOTE_MINER_ROLE = 'remoteMiner';
+const REMOTE_HAULER_ROLE = 'remoteHauler';
+
+// =============================
+// HELPERS
+// =============================
+
+function calcHaulerEnergy(distance, roomEnergyCapacity) {
+    const carryUnits = Math.ceil(distance / 5);
+    const moveUnits = carryUnits;
+    const cost = (carryUnits * BODYPART_COST[CARRY]) + (moveUnits * BODYPART_COST[MOVE]);
+    return Math.min(cost, roomEnergyCapacity);
+}
+
+function getAssignedCreeps(roomName, role, sourceId = null) {
+    return Object.values(Game.creeps).filter(c => {
+        if (c.memory.role !== role) return false;
+        if (c.memory.homeRoom !== roomName) return false;
+        if (sourceId && c.memory.sourceId !== sourceId) return false;
+        return true;
+    });
+}
+
+// =============================
+// INIT
+// =============================
+
+function initRemoteData(room, remoteName) {
+
+    const intel = Memory.intel.rooms[remoteName];
+    const spawn = room.find(FIND_MY_SPAWNS)[0];
+
+    room.memory.remotes ??= {};
+    room.memory.remotes[remoteName] = { sources: {} };
+
+    for (const source of intel.sources) {
+
+        const sourcePos = new RoomPosition(source.pos.x, source.pos.y, remoteName);
+
+        const result = PathFinder.search(spawn.pos, { pos: sourcePos, range: 1 }, {
+            plainCost: 2,
+            swampCost: 10,
+            roomCallback: (rName) => {
+                const r = Game.rooms[rName];
+                if (!r) return new PathFinder.CostMatrix();
+                const matrix = new PathFinder.CostMatrix();
+                r.find(FIND_STRUCTURES).forEach(s => {
+                    if (s.structureType === STRUCTURE_ROAD) {
+                        matrix.set(s.pos.x, s.pos.y, 1);
+                    } else if (
+                        s.structureType !== STRUCTURE_CONTAINER &&
+                        s.structureType !== STRUCTURE_RAMPART
+                    ) {
+                        matrix.set(s.pos.x, s.pos.y, 255);
+                    }
+                });
+                return matrix;
+            }
+        });
+
+        room.memory.remotes[remoteName].sources[source.id] = {
+            distance: result.path.length,
+            path: Room.serializePath(result.path),
+            containerId: null
+        };
+    }
+}
+
+// =============================
+// SPAWN
+// =============================
+
+function spawnForRemote(room, remoteName) {
+
+    const intel = Memory.intel.rooms[remoteName];
+    const localSources = room.memory.remotes[remoteName].sources;
+
+    for (const source of intel.sources) {
+
+        const data = localSources[source.id];
+
+        // =============================
+        // REMOTE MINER
+        // =============================
+        const miners = getAssignedCreeps(room.name, REMOTE_MINER_ROLE, source.id);
+
+        if (miners.length === 0) {
+            room.spawnCreepForRole(REMOTE_MINER_ROLE, room.energyCapacityAvailable, {
+                memory: {
+                    targetRoom: remoteName,
+                    sourceId: source.id,
+                    sourcePos: source.pos,
+                    containerId: data.containerId || null
+                }
+            });
+        }
+
+        // =============================
+        // REMOTE HAULER
+        // =============================
+        if (!data.containerId && miners.length === 0) continue;
+
+        const haulers = getAssignedCreeps(room.name, REMOTE_HAULER_ROLE, source.id);
+        const haulersNeeded = Math.max(1, Math.ceil(data.distance / 25));
+
+        if (haulers.length < haulersNeeded) {
+            const haulerEnergy = calcHaulerEnergy(data.distance, room.energyCapacityAvailable);
+            room.spawnCreepForRole(REMOTE_HAULER_ROLE, haulerEnergy, {
+                memory: {
+                    targetRoom: remoteName,
+                    sourceId: source.id,
+                    sourcePos: source.pos,
+                    containerId: data.containerId || null
+                }
+            });
+        }
+    }
+}
+
+// =============================
+// PROTOTYPE
+// =============================
+
+Room.prototype.runRemotes = function() {
+    for (const [remoteName, remote] of Object.entries(Memory.remotes || {})) {
+        if (remote.owner !== this.name) continue;
+
+        if (!this.memory.remotes?.[remoteName]) {
+            initRemoteData(this, remoteName);
+        }
+
+        spawnForRemote(this, remoteName);
+    }
+};
+
 Room.prototype.spawnCreepsNeeded = function() {
 
     const creeps = this.find(FIND_MY_CREEPS);
