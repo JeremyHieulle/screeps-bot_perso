@@ -67,6 +67,7 @@ module.exports = {
         if (result === OK) {
             queue.shift();
             console.log(`Spawning ${request.name} at ${room.name} with body: ${request.body}`)
+            return
         } else {
             console.log(`Echec spawn ${request.name} at ${room.name} (${result})`)
         }
