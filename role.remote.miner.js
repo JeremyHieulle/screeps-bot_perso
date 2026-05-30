@@ -35,7 +35,8 @@ module.exports = {
             if (container) {
                 creep.memory.containerId = container.id;
                 // update local data dans la home room
-                const homeRoom = Game.rooms[creep.memory.homeRoom];
+
+                const homeRoom = Game.spawns[creep.memory.bornIn].room;
                 if (homeRoom?.memory?.remotes?.[targetRoom]?.sources?.[sourceId]) {
                     homeRoom.memory.remotes[targetRoom].sources[sourceId].containerId = container.id;
                 }

@@ -6,7 +6,7 @@ module.exports = {
         creep.toggleWorkingState();
 
         const targetRoom = creep.memory.targetRoom;
-        const homeRoom = creep.memory.homeRoom;
+        const homeRoom = Game.spawns[creep.memory.bornIn].room;
         const sourcePos = creep.memory.sourcePos;
 
         // =============================
