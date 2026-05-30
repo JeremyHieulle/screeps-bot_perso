@@ -605,14 +605,16 @@ Room.prototype.spawnCreepsNeeded = function() {
         }
     }
 
-    const spawn = this.find(FIND_MY_SPAWNS)[0];
-    if (spawn?.spawning) {
-        const spawningName = spawn.spawning.name;
-        const role = Memory.creeps[spawningName]?.role;
+    const spawns = this.getCached(LOOK_STRUCTURES, STRUCTURE_SPAWN);
+    for (const spawn of spawns) {
+        if (spawn?.spawning) {
+            const spawningName = spawn.spawning.name;
+            const role = Memory.creeps[spawningName]?.role;
 
-        if (role) {
-            creepCount[role] ??= 0;
-            creepCount[role]++;
+            if (role) {
+                creepCount[role] ??= 0;
+                creepCount[role]++;
+            }
         }
     }
 
