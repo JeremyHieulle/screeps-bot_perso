@@ -14,6 +14,7 @@ if (!Creep.prototype._moveTo) {
             remoteBuilder: 15,
             remoteMiner: 30,
             remoteHauler: 30,
+            remoteReserver: 30,
             hauler: 20,
             harvester: 10,
             upgrader: 15,
