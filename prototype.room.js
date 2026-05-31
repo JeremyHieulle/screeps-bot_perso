@@ -620,10 +620,11 @@ function calcRemoteHauling(distance, roomEnergyCapacity) {
     return { haulerCount, energyPerHauler };
 }
 
-function getAssignedCreeps(role, sourceId = null) {
+function getAssignedCreeps(role, sourceId = null, targetRoom = null) {
     return Object.values(Game.creeps).filter(c => {
         if (c.memory.role !== role) return false;
         if (sourceId && c.memory.sourceId !== sourceId) return false;
+        if (targetRoom && c.memory.targetRoom !== targetRoom) return false;
         return true;
     });
 }
@@ -727,7 +728,7 @@ function spawnForRemote(room, remoteName) {
     // REMOTE RESERVER
     // =============================
     const remoteData = room.memory.remotes[remoteName];
-    const reservers = getAssignedCreeps('remoteReserver')
+    const reservers = getAssignedCreeps('remoteReserver', null, remoteName);
 
     const shouldSpawn = !remoteData.spawnReserverAt || 
                         Game.time >= remoteData.spawnReserverAt;
