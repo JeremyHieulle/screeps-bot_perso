@@ -65,7 +65,7 @@ function scanCreeps(room) {
 }
 
 function scanStructures(room) {
-
+    if (!room.controller?.my) return;
     room.memory._lastHits ??= {};
     room.memory._lastHits.structures ??= {};
     
