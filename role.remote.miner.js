@@ -27,24 +27,20 @@ module.exports = {
         // GESTION CONTAINER
         // =============================
         if (!creep.memory.containerId) {
-
-            const container = creep.pos.findInRange(FIND_STRUCTURES, 1, {
+            const container = source.pos.findInRange(FIND_STRUCTURES, 1, {
                 filter: s => s.structureType === STRUCTURE_CONTAINER
             })[0];
 
             if (container) {
                 creep.memory.containerId = container.id;
-                // update local data dans la home room
-
                 const homeRoom = Game.spawns[creep.memory.bornIn].room;
                 if (homeRoom?.memory?.remotes?.[targetRoom]?.sources?.[sourceId]) {
                     homeRoom.memory.remotes[targetRoom].sources[sourceId].containerId = container.id;
                 }
             } else {
-                const site = creep.pos.findInRange(FIND_CONSTRUCTION_SITES, 1, {
+                const site = source.pos.findInRange(FIND_CONSTRUCTION_SITES, 1, {
                     filter: s => s.structureType === STRUCTURE_CONTAINER
                 })[0];
-
                 if (!site && creep.pos.getRangeTo(source) <= 1) {
                     creep.room.createConstructionSite(creep.pos, STRUCTURE_CONTAINER);
                 }

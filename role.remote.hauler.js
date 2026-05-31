@@ -65,9 +65,7 @@ module.exports = {
         // pas de container encore, on attend sur la sourcePos
         if (sourcePos) {
             const pos = new RoomPosition(sourcePos.x, sourcePos.y, targetRoom);
-            if (!creep.pos.isEqualTo(pos)) {
-                creep.moveTo(pos, { reusePath: 50 });
-            }
+            creep.moveTo(pos, { reusePath: 50, range: 2 });
         }
     }
 };
