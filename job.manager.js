@@ -157,7 +157,7 @@ module.exports = {
                 case "mineral": type = "harvest";  break;
             }
 
-            if ( spatialJob.tag === 'mineral' && !mem.cache?.structures?.extractor ) continue
+            if ( spatialJob.tag === 'mineral' && !mem.cache?.structure?.extractor ) continue
 
             const originId = spatialJob.targetId;
             const opts = { workPos: spatialJob.workPos }
