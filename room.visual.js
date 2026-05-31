@@ -1,4 +1,7 @@
 module.exports.run = function (room) {
+
+    const v = room.visual;
+
     // MAJ de l'UI
     if (Game.time % 10 === 0) {
         const roleCounts = {};
@@ -22,17 +25,32 @@ module.exports.run = function (room) {
     const x = 1;
     let y = 1;
     if ( !room.memory.upgradeContainerId ) {
-        room.visual.text('📌 Missing upgradeContainerId', x, y, { align: 'left', opacity: 0.5, color: '#ff7070' });
+        v.text('📌 Missing upgradeContainerId', x, y, { align: 'left', opacity: 0.5, color: '#ff7070' });
         y++;
     }
     if (data.length) {
         for ( row in data ) {
-            room.visual.text(data[row], x, y, { align: 'left', opacity: 0.5});
+            v.text(data[row], x, y, { align: 'left', opacity: 0.5});
             y++;
         }
     }
 
     const core = room.getCore();
     if (core !== ERR_NOT_FOUND)
-        room.visual.circle(core,{radius:0.1,fill:"green"});
+        v.circle(core,{radius:0.1,fill:"green"});
+
+
+    // Draw cpu stats
+    let y = 1;
+    v.text('CPU', 35, y, { font: 0.7, color: '#ffffff', align: 'left' });
+    y += 0.9;
+
+    for (const [label, data] of Object.entries(Memory.stats?.cpu || {})) {
+        const val = data.last?.toFixed(2) ?? '?';
+        const avg = data.avg?.toFixed(2) ?? '?';
+
+        v.text(`${label}`, 35, y, { font: 0.45, color: '#aaaaaa', align: 'left' });
+        v.text(`${val} (avg ${avg})`, 43, y, { font: 0.45, color: '#ffcc00', align: 'left' });
+        y += 0.6;
+    }
 }
