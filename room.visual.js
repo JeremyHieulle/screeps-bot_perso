@@ -41,7 +41,7 @@ module.exports.run = function (room) {
 
 
     // Draw cpu stats
-    let y = 1;
+    y = 1;
     v.text('CPU', 35, y, { font: 0.7, color: '#ffffff', align: 'left' });
     y += 0.9;
 
