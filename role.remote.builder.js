@@ -4,11 +4,10 @@ module.exports = {
         creep.memory.working ??= false
         creep.toggleWorkingState();
         
-        const roomSrc = Game.rooms['W37S37'];
-        const roomDst = Game.rooms['W36S38'];
+        const targetRoom = creep.memory.targetRoom;
 
-        if ( creep.room.name !== roomDst.name ) {
-            creep.moveTo(roomDst.controller);
+        if ( creep.room.name !== targetRoom ) {
+            creep.moveTo(new RoomPosition(25, 25, targetRoom), { reusePath: 50 });
             return
         }
         
