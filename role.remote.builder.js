@@ -12,9 +12,9 @@ module.exports = {
         }
         
         if(creep.getActiveBodyparts(ATTACK) > 0) {
-            const target = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS).filter(c => !isAlly(c.owner.username));
+            const target = creep.pos.findClosestByRange(FIND_HOSTILE_CREEPS)
 
-            if ( target && creep.pos.getRangeTo(target) < 20 ) {
+            if ( target && !isAlly(target.owner.username) && targetcreep.pos.getRangeTo(target) < 20 ) {
                 if(creep.attack(target) == ERR_NOT_IN_RANGE) {
                     creep.moveTo(target);
                 }
