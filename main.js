@@ -160,6 +160,9 @@ module.exports.loop = function () {
     // ==============================
     const cpuGlobalSpawnTotal = getCpu()
 
+    if (Game.time % 1000 >= 0 && Game.time % 1000 < 50) {
+        Game.spawns['Spawn1'].spawnCreep([CLAIM, MOVE, CLAIM, MOVE, CLAIM, MOVE, CLAIM, MOVE, CLAIM, MOVE, CLAIM, MOVE, CLAIM, MOVE, CLAIM, MOVE], 'Jeanne', { memory: { role: 'manual' } });
+    }
     // const enemyRoom = Game.rooms['W38S38'];
     // if ( enemyRoom ) {
     //     const enemySafeMode = Game.rooms['W38S38'].controller.safeMode
