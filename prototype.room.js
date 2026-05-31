@@ -721,24 +721,23 @@ function spawnForRemote(room, remoteName) {
                 }
             });
         }
+    }
 
-        // =============================
-        // REMOTE RESERVER
-        // =============================
-        const remoteData = room.memory.remotes[remoteName];
-        const reservers = getAssignedCreeps(room.name, 'remoteReserver')
-            .filter(c => c.memory.targetRoom === remoteName);
+    // =============================
+    // REMOTE RESERVER
+    // =============================
+    const remoteData = room.memory.remotes[remoteName];
+    const reservers = getAssignedCreeps('remoteReserver')
 
-        const shouldSpawn = !remoteData.spawnReserverAt || 
-                            Game.time >= remoteData.spawnReserverAt;
+    const shouldSpawn = !remoteData.spawnReserverAt || 
+                        Game.time >= remoteData.spawnReserverAt;
 
-        if (reservers.length === 0 && shouldSpawn) {
-            room.spawnCreepForRole('remoteReserver', 1300, {
-                memory: {
-                    targetRoom: remoteName,
-                }
-            });
-        }
+    if (reservers.length === 0 && shouldSpawn) {
+        room.spawnCreepForRole('remoteReserver', 1300, {
+            memory: {
+                targetRoom: remoteName,
+            }
+        });
     }
 }
 
