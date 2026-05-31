@@ -21,10 +21,9 @@ module.exports = {
         // =============================
         if (Game.time % 50 === 0) {
             const ticksToEnd = controller.reservation?.ticksToEnd || 0;
-            const home = Game.rooms[homeRoom];
-            if (home?.memory?.remotes?.[targetRoom]) {
+            if (homeRoom?.memory?.remotes?.[targetRoom]) {
                 // on veut spawner un nouveau quand il restera ~4000 ticks
-                home.memory.remotes[targetRoom].spawnReserverAt = Game.time + ticksToEnd - 4000;
+                homeRoom.memory.remotes[targetRoom].spawnReserverAt = Game.time + ticksToEnd - 4000;
             }
         }
 
