@@ -728,7 +728,7 @@ function spawnForRemote(room, remoteName) {
         // =============================
         // REMOTE DEFENSE
         // =============================
-        
+
         if (remoteData.invaderCore) {
             const killers = getAssignedCreeps('coreKiller')
                 .filter(c => c.memory.targetRoom === remoteName);
@@ -901,7 +901,7 @@ Room.prototype.spawnCreepsNeeded = function() {
 
     const storage = this.getCached("structure", STRUCTURE_STORAGE);
 
-    if (( storage.length === 0 ) || ( storage.length > 0 && storage[0].store[RESOURCE_ENERGY] > 300000 )) {
+    if (( this.controller.level < 4 ) || ( storage.length > 0 && storage[0].store[RESOURCE_ENERGY] > 300000 )) {
         upgraderMaxCost = this.energyCapacityAvailable;
     }
 
@@ -915,7 +915,7 @@ Room.prototype.spawnCreepsNeeded = function() {
     const coreLink = this.findByTag("core", STRUCTURE_LINK)
     const hasManager = this.getCache("logistics", "hasManager");
 
-    if ( storage.length > 0 && coreLink && total('manager') < 1 ) {
+    if ( storage.length > 0 && coreLink && total('manager') < 1 && this.name !== 'W35S38') {
         this.spawnCreepForRole('manager', this.energyCapacityAvailable, {memory: { workPos: { x: this.memory.plan.corePos.x, y: this.memory.plan.corePos.y }}});
     } 
 
