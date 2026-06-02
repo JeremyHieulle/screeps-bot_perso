@@ -39,7 +39,14 @@ module.exports = {
                     creep.moveTo(build);
                 }
             }
-        } else {        
+        } else {
+            const drops = creep.room.find(FIND_DROPPED_RESOURCES, {
+                filter: r => r.resourceType === RESOURCE_ENERGY
+            });
+            if (drops.length > 0) {
+                creep.myPickup(drops[0]);
+                return
+            }
             creep.getEnergy();
         }
     }
