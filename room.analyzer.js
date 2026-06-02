@@ -753,7 +753,6 @@ function runPlanner(room, core) {
         ret = fixExtensionWalls(room, core);
     } while (ret !== OK)
 
-    
 }
 
 function buildPlanningMatrix(room) {
@@ -1018,4 +1017,8 @@ module.exports.analyzeRoom = function(room){
     }
 
     runPlanner(room, core);
+    
+    //cleanup unused data
+    delete mem.plan.occupied;
+    delete mem.unreachable;
 };
