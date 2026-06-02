@@ -5,6 +5,26 @@ module.exports = {
         const targetRoom = creep.memory.targetRoom;
         const homeRoom = Game.spawns[creep.memory.bornIn].room;
 
+        if (creep.memory.returning) {
+            if (creep.room.name !== homeRoom.name) {
+                creep.moveTo(new RoomPosition(25, 25, homeRoom.name), { reusePath: 50 });
+                return;
+            }
+
+            const spawn = Game.spawns[creep.memory.bornIn] || homeRoom.find(FIND_MY_SPAWNS)[0];
+            if (!creep.pos.isNearTo(spawn)) {
+                creep.moveTo(spawn, { reusePath: 50 });
+                return;
+            }
+            if (spawn) spawn.recycleCreep(creep);
+            return;
+        }
+
+        if (creep.room.name !== targetRoom) {
+            creep.moveTo(new RoomPosition(25, 25, targetRoom), { reusePath: 50 });
+            return;
+        }
+        
         if (creep.room.name !== targetRoom) {
             creep.moveTo(new RoomPosition(25, 25, targetRoom), { reusePath: 50 });
             return;
@@ -17,14 +37,8 @@ module.exports = {
         if (!core) {
             if (homeRoom?.memory?.remotes?.[targetRoom]) {
                 homeRoom.memory.remotes[targetRoom].invaderCore = false;
+                creep.memory.returning = true;
             }
-            // recycle
-            const spawn = Game.spawns[creep.memory.bornIn] || homeRoom.find(FIND_MY_SPAWNS)[0];
-            if (!creep.pos.isNearTo(spawn)) {
-                creep.moveTo(spawn, { reusePath: 50 });
-                return;
-            }
-            if (spawn) spawn.recycleCreep(creep);
             return;
         }
 
