@@ -24,6 +24,24 @@ module.exports = {
         }
 
         // =============================
+        // SURVEILLANCE INVADER
+        // =============================
+
+        if (Game.time % 10 === 0) {
+            const hostileStructures = creep.room.find(FIND_HOSTILE_STRUCTURES, {
+                filter: s => s.structureType === STRUCTURE_INVADER_CORE
+            });
+            const hostileCreeps = creep.room.find(FIND_HOSTILE_CREEPS);
+
+            const homeRoom = Game.spawns[creep.memory.bornIn].room;
+            const remoteData = homeRoom.memory.remotes?.[creep.memory.targetRoom];
+            if (!remoteData) return;
+
+            remoteData.invaderCore = hostileStructures.length > 0;
+            remoteData.invaders = hostileCreeps.length > 0;
+        }
+
+        // =============================
         // GESTION CONTAINER
         // =============================
         if (!creep.memory.containerId) {
