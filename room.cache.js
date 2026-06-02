@@ -77,15 +77,16 @@ function _buildStructureMetaCache(room) {
 
 function _buildTransportCache(room) {
 
+    const spawn = room.find(FIND_STRUCTURES, {
+        filter: s => s.structureType === STRUCTURE_SPAWN
+    })[0];
+    if (!spawn) return null;
     const sources = room.find(FIND_SOURCES);
     const storage = room.find(FIND_STRUCTURES, {
         filter: s => s.structureType === STRUCTURE_STORAGE
     })[0];
     const terminal = room.find(FIND_STRUCTURES, {
         filter: s => s.structureType === STRUCTURE_TERMINAL
-    })[0];
-    const spawn = room.find(FIND_STRUCTURES, {
-        filter: s => s.structureType === STRUCTURE_SPAWN
     })[0];
     const containers = room.find(FIND_STRUCTURES, {
         filter: s => s.structureType === STRUCTURE_CONTAINER
