@@ -44,24 +44,19 @@ function damageDetector(room) {
 }
 
 function scanCreeps(room) {
-
     room.memory._lastHits ??= {};
-    room.memory._lastHits.creeps ??= {};
-
-    const cache = room.memory._lastHits.creeps;
-
     const creeps = room.find(FIND_MY_CREEPS);
+    const newCache = {};
+    const oldCache = room.memory._lastHits.creeps ?? {};
 
     for (const creep of creeps) {
-
-        const last = cache[creep.id];
-
+        const last = oldCache[creep.id];
         if (last !== undefined && creep.hits < last) {
             resolveFromEventLog(room, creep.id);
         }
-
-        cache[creep.id] = creep.hits;
+        newCache[creep.id] = creep.hits;
     }
+    room.memory._lastHits.creeps = newCache;
 }
 
 function scanStructures(room) {
