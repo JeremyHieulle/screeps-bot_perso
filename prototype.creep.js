@@ -416,6 +416,13 @@ Creep.prototype.idle = function() {
 };
 
 Creep.prototype.doJob = function(job) {
+    
+    const workPos = job.workPos;
+    if (workPos && !this.pos.isEqualTo(workPos.x, workPos.y)) {
+        creep.moveTo(workPos.x, workPos.y);
+        return;
+    }
+
     if ( job.type === 'harvest' ) {
 
         const target = Game.getObjectById(job.originId);
