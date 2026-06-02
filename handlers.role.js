@@ -13,7 +13,9 @@ const handlers = {
     attacker: require('role.attacker'),
     manual: require('role.manual'),
     scout: require('role.scout'),
-    manager: require('role.manager')
+    manager: require('role.manager'),
+    coreKiller: require('role.coreKiller'),
+    defender: require('role.defender')
 };
 
 module.exports = handlers;

@@ -722,6 +722,32 @@ function spawnForRemote(room, remoteName) {
                 }
             });
         }
+
+        const remoteData = room.memory.remotes[remoteName];
+
+        // =============================
+        // REMOTE DEFENSE
+        // =============================
+        
+        if (remoteData.invaderCore) {
+            const killers = getAssignedCreeps('coreKiller')
+                .filter(c => c.memory.targetRoom === remoteName);
+            if (killers.length === 0) {
+                room.spawnCreepForRole('coreKiller', 1000, {
+                    memory: { targetRoom: remoteName }
+                });
+            }
+        }
+
+        if (remoteData.invaders) {
+            const defenders = getAssignedCreeps('remoteDefender')
+                .filter(c => c.memory.targetRoom === remoteName);
+            if (defenders.length === 0) {
+                room.spawnCreepForRole('remoteDefender', 1800, {
+                    memory: { targetRoom: remoteName }
+                });
+            }
+        }
     }
 
     // =============================
