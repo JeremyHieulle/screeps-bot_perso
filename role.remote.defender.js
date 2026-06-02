@@ -31,12 +31,19 @@ module.exports = {
 
         if (range <= 2) {
             creep.rangedAttack(target);
-            const fleeDir = creep.pos.getDirectionTo(target);
-            const opposite = ((fleeDir + 3) % 8) + 1;
-            creep.move(opposite);
+            const fled = PathFinder.search(creep.pos, {
+                pos: target.pos,
+                range: 4
+            }, {
+                flee: true,
+                maxRooms: 1,
+                plainCost: 2,
+                swampCost: 10  // évite activement les swamps
+            });
+            if (fled.path.length > 0) creep.moveByPath(fled.path);
             return;
         }
-
+        
         if (range <= 3) {
             creep.rangedAttack(target);
             creep.heal(creep);
