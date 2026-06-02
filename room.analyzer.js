@@ -495,7 +495,7 @@ function planMineral(room, core) {
     const workPos = path[path.length - 1];
 
     for (let i = 1; i <= path.length - 1; i++) {
-        mark(plan, "road", path[i].x, path[i].y, { tag: 'mineral', dependsOn: ['extractor'] });
+        mark(plan, "road", path[i].x, path[i].y, { tag: 'mineral', dependsOn: ['extractor'], mineral: mineral.mineralType });
     }
 
     mark(plan, "container", containerPos.x, containerPos.y, { tag: 'mineral', dependsOn: ['extractor'] });
