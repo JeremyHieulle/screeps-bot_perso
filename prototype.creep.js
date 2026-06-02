@@ -419,7 +419,7 @@ Creep.prototype.doJob = function(job) {
     
     const workPos = job.workPos;
     if (workPos && !this.pos.isEqualTo(workPos.x, workPos.y)) {
-        creep.moveTo(workPos.x, workPos.y);
+        this.moveTo(workPos.x, workPos.y);
         return;
     }
 
