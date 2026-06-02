@@ -25,12 +25,17 @@ module.exports = {
                 } else {
                     const upgradeContainer = creep.room.findByTag("controller", STRUCTURE_CONTAINER)
                     if ( upgradeContainer && upgradeContainer.store[RESOURCE_ENERGY] < 1000 ) {
-                        creep.myTransfer(upgradeContainer)
+                        creep.myTransfer(upgradeContainer, RESOURCE_ENERGY);
                         return;
                     }
                     const storage = creep.room.getCached("structure", STRUCTURE_STORAGE)
                     if ( storage.length > 0 ) {
-                        creep.myTransfer(storage[0])
+                        for ( const resourceType in creep.store ) {
+                            if ( creep.store[resourceType] > 0 ) {
+                                creep.myTransfer(storage[0], resourceType)
+                            }
+                        }
+                        return;
                     }
                 }
             } else {
