@@ -1,4 +1,4 @@
-const heatmap = require('room.heatmap');
+//const heatmap = require('room.heatmap');
 const visual = require('room.visual');
 
 function getExistingStructures(room) {
@@ -203,31 +203,31 @@ function getPlannedRoadSet(room) {
     return set;
 }
 
-function getRoadCandidates(room, threshold = 50) {
-    const heatmap = room.memory.heatmap || {};
-    const existing = getExistingRoads(room);
-    const planned = getPlannedRoadSet(room);
+// function getRoadCandidates(room, threshold = 50) {
+//     const heatmap = room.memory.heatmap || {};
+//     const existing = getExistingRoads(room);
+//     const planned = getPlannedRoadSet(room);
 
-    const candidates = [];
+//     const candidates = [];
 
-    for (const key in heatmap) {
-        if (!planned.has(key)) continue;
+//     for (const key in heatmap) {
+//         if (!planned.has(key)) continue;
 
-        const heat = heatmap[key];
-        if (heat < threshold) continue;
+//         const heat = heatmap[key];
+//         if (heat < threshold) continue;
 
-        if (existing.has(key)) continue;
+//         if (existing.has(key)) continue;
 
-        const [x, y] = key.split(',').map(Number);
+//         const [x, y] = key.split(',').map(Number);
 
-        candidates.push({
-            pos: { x, y },
-            heat
-        });
-    }
+//         candidates.push({
+//             pos: { x, y },
+//             heat
+//         });
+//     }
 
-    return candidates;
-}
+//     return candidates;
+// }
 
 function scoreRoad(c) {
     return c.heat;
@@ -321,8 +321,8 @@ module.exports = {
         mem.state ??= 'planner'
 
         if (mem.state === 'planner') {
-            heatmap.runHeatmap(room);
-            if (Game.time % 25 === 0) buildRoads(room);
+            // heatmap.runHeatmap(room);
+            // if (Game.time % 25 === 0) buildRoads(room);
             if (Game.time % 10 === 0) buildNextStructure(room);
             
         }
