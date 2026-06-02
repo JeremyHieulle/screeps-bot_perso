@@ -20,8 +20,8 @@ module.exports = {
             }
             // recycle
             const spawn = Game.spawns[creep.memory.bornIn] || homeRoom.find(FIND_MY_SPAWNS)[0];
-            if (creep.room.name !== homeRoom.name) {
-                creep.moveTo(new RoomPosition(25, 25, homeRoom.name), { reusePath: 50 });
+            if (!creep.pos.isNearTo(spawn)) {
+                creep.moveTo(spawn, { reusePath: 50 });
                 return;
             }
             if (spawn) spawn.recycleCreep(creep);
