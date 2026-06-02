@@ -208,7 +208,7 @@ module.exports = {
                 const resourceType = meta.mineral;
                 const amount = store[resourceType];
 
-                if (amount > 0) {
+                if (amount > 500) {
                     createJob(room, 'withdraw', container.id, {
                         resourceType,
                         amount
