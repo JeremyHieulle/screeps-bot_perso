@@ -161,7 +161,7 @@ module.exports = {
                 const extractor = mem.cache.structure?.extractor;
                 if (!extractor || extractor.length === 0) continue;
 
-                const mineral = Game.getObjectById(spatialJob.originId)
+                const mineral = Game.getObjectById(spatialJob.targetId);
                 if (mineral && mineral.mineralAmount === 0) continue;
             }
 
