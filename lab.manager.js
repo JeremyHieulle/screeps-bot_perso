@@ -23,25 +23,19 @@ function getLabRoles(room, resource) {
     const { input1, input2 } = recipe;
     const labs = room.getCached(LOOK_STRUCTURES, STRUCTURE_LAB);
 
-    // lab input1 : contient input1 ou vide
+    // lab input1 : a déjà input1, ou est vide
     const labInput1 = labs.find(l =>
-        l.mineralType === input1 ||
-        (!l.mineralType && l.store[input1] === undefined)
+        l.mineralType === input1 || !l.mineralType
     );
-
     if (!labInput1) return null;
 
-    // lab input2 : contient input2 ou vide, différent de input1
+    // lab input2 : a déjà input2, ou est vide (et différent de input1)
     const labInput2 = labs.find(l =>
         l !== labInput1 &&
-        (l.mineralType === input2 ||
-        (!l.mineralType && l.store[input2] === undefined))
+        (l.mineralType === input2 || !l.mineralType)
     );
-
     if (!labInput2) return null;
 
-    // outputs : ni input1 ni input2, bon mineral ou vide,
-    // ET dans le range de 2 des deux inputs
     const outputs = labs.filter(l => {
         if (l === labInput1 || l === labInput2) return false;
         if (l.mineralType && l.mineralType !== resource) return false;

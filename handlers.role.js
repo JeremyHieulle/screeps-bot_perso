@@ -16,7 +16,7 @@ const handlers = {
     manager: require('role.manager'),
     coreKiller: require('role.coreKiller'),
     remoteDefender: require('role.remote.defender'),
-    scientist: require('lab.manager')
+    scientist: { run: (creep) => require('lab.manager').runScientist(creep) }
 };
 
 module.exports = handlers;
