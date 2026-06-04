@@ -18,7 +18,8 @@ const patterns = {
     drainerHealer: { pattern: [HEAL, HEAL, MOVE], max: 4},
     remoteReserver: { pattern: [CLAIM, MOVE], max: 2 },
     coreKiller:     { pattern: [ATTACK, MOVE], max: 5 },
-    remoteDefender: { pattern: [RANGED_ATTACK, MOVE], max: 4, base: [HEAL, HEAL] }
+    remoteDefender: { pattern: [RANGED_ATTACK, MOVE], max: 4, base: [HEAL, HEAL] },
+    scientist: { pattern: [CARRY, CARRY, MOVE], max: 4 }
 };
 
 function getBodyCost(parts) {

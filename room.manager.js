@@ -1,4 +1,5 @@
 //const heatmap = require('room.heatmap');
+const labManager = require('lab.manager');
 const visual = require('room.visual');
 
 function getExistingStructures(room) {
@@ -327,6 +328,8 @@ module.exports = {
             
         }
         
+        
+        labManager.run(room);
         visual.run(room);
     }
 };
