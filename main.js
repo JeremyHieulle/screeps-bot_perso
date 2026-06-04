@@ -179,7 +179,7 @@ module.exports.loop = function () {
     // ==============================
     // const cpuMarketTotal = getCpu()
 
-    marketManager.run();
+    // marketManager.run();
 
     // printCpu(cpuOtherRoles, '6. TEST MARKET', 'running')
 
@@ -187,6 +187,7 @@ module.exports.loop = function () {
     // 7. CE BOT NE CONSOMME PAS ASSEZ DE CPU. AIDONS-LE UN PEU
     // ==============================
 
+    
     if (Game.cpu.generatePixel && Game.cpu.bucket >= 10000) {
         console.log('generating a pixel');
         Game.cpu.generatePixel();

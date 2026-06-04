@@ -73,7 +73,7 @@ function update(room) {
 
         if (job.type === 'repair') {
         
-            const targetHits = Math.min(obj.hitsMax, 600000);
+            const targetHits = Math.min(obj.hitsMax, 2500000);
         
             const damage = targetHits - obj.hits;
         
@@ -345,7 +345,7 @@ module.exports = {
         const repairs = room.find(FIND_STRUCTURES, {
 				filter: (structure) => {
 					return structure.hits < structure.hitsMax / 2 &&
-					structure.hits < 500000
+					structure.hits < 2000000
                     //structure.structureType !== STRUCTURE_WALL;
 				}
 			});
