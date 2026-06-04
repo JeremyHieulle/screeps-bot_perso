@@ -145,56 +145,43 @@ function runScientist(creep) {
     }
 
     // =============================
-    // REMPLIR LAB INPUT 1
+    // CHECK LAB INPUTS
     // =============================
-    const free1 = labInput1.store.getFreeCapacity(input1);
-    if (free1 > 0) {
-        if (creep.store[input1] === 0) {
-            const available = storage.store[input1] || 0;
-            if (available === 0) {
-                creep.say('no ' + input1);
-                return;
-            }
-            if (creep.pos.getRangeTo(storage) > 1) {
-                creep.moveTo(storage, { reusePath: 20 });
-                return;
-            }
-            creep.withdraw(storage, input1,
-                Math.min(creep.store.getFreeCapacity(), available, free1));
-            return;
-        }
-        if (creep.pos.getRangeTo(labInput1) > 1) {
-            creep.moveTo(labInput1, { reusePath: 20 });
-            return;
-        }
-        creep.transfer(labInput1, input1);
-        return;
-    }
+
+    const stock1 = labInput1.store[input1] || 0;
+    const stock2 = labInput2.store[input2] || 0;
+
+    const fillFirst = stock1 <= stock2 ? 
+        { lab: labInput1, resource: input1, stock: stock1 } : 
+        { lab: labInput2, resource: input2, stock: stock2 };
 
     // =============================
-    // REMPLIR LAB INPUT 2
+    // REMPLIR LAB INPUT 1
     // =============================
-    const free2 = labInput2.store.getFreeCapacity(input2);
-    if (free2 > 0) {
-        if (creep.store[input2] === 0) {
-            const available = storage.store[input2] || 0;
+    const labToFill = fillFirst.lab;
+    const resourceToFill = fillFirst.resource;
+
+    const free = labToFill.store.getFreeCapacity(resourceToFill);
+    if (free > 0) {
+        if (creep.store[resourceToFill] === 0) {
+            const available = storage.store[resourceToFill] || 0;
             if (available === 0) {
-                creep.say('no ' + input2);
+                creep.say('no ' + resourceToFill);
                 return;
             }
             if (creep.pos.getRangeTo(storage) > 1) {
                 creep.moveTo(storage, { reusePath: 20 });
                 return;
             }
-            creep.withdraw(storage, input2,
-                Math.min(creep.store.getFreeCapacity(), available, free2));
+            creep.withdraw(storage, resourceToFill,
+                Math.min(creep.store.getFreeCapacity(), available, free));
             return;
         }
-        if (creep.pos.getRangeTo(labInput2) > 1) {
-            creep.moveTo(labInput2, { reusePath: 20 });
+        if (creep.pos.getRangeTo(labToFill) > 1) {
+            creep.moveTo(labToFill, { reusePath: 20 });
             return;
         }
-        creep.transfer(labInput2, input2);
+        creep.transfer(labToFill, resourceToFill);
         return;
     }
 
