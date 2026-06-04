@@ -81,6 +81,25 @@ function runScientist(creep) {
     const order = room.memory.labOrder;
 
     if (!order) {
+        const allLabs = room.getCached(LOOK_STRUCTURES, STRUCTURE_LAB);
+        for (const lab of allLabs) {
+            if (!lab.mineralType) continue;
+            if (creep.store.getFreeCapacity() === 0) break;
+            if (creep.pos.getRangeTo(lab) > 1) {
+                creep.moveTo(lab, { reusePath: 20 });
+                return;
+            }
+            creep.withdraw(lab, lab.mineralType);
+            return;
+        }
+        if (creep.store.getUsedCapacity() > 0) {
+            if (creep.pos.getRangeTo(storage) > 1) {
+                creep.moveTo(storage, { reusePath: 20 });
+                return;
+            }
+            creep.transfer(storage, Object.keys(creep.store)[0]);
+            return;
+        }
         creep.say('idle');
         return;
     }
@@ -94,6 +113,21 @@ function runScientist(creep) {
     const { input1, input2, labInput1, labInput2, outputs } = roles;
     const storage = room.getCached('structure', STRUCTURE_STORAGE)[0];
     if (!storage) return;
+
+    // =============================
+    // VERIFICATION SI COMMANDE COMPLETE
+    // =============================
+
+    const alreadyProduced = 
+    (storage.store[order.resource] || 0) +
+    outputs.reduce((sum, o) => sum + (o.store[order.resource] || 0), 0) +
+    (creep.store[order.resource] || 0);
+
+    if (alreadyProduced >= order.amount) {
+        console.log(`${room} Lab order complete: ${order.resource}`);
+        delete room.memory.labOrder;
+        return;
+    }
 
     // =============================
     // VIDER RESIDUS DANS OUTPUTS
