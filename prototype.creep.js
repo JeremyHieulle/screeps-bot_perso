@@ -175,7 +175,7 @@ Creep.prototype.run = function () {
 
     const hasRareResources = used > energy;
 
-    if (hasRareResources) {
+    if (this.memory.role !== 'scientist' && hasRareResources) {
         if (this.dumpNonEnergy(5) === OK) return;
     }
 
