@@ -79,7 +79,9 @@ function runScientist(creep) {
 
     const room = Game.spawns[creep.memory.bornIn].room;
     const order = room.memory.labOrder;
-
+    const storage = room.getCached('structure', STRUCTURE_STORAGE)[0];
+    if (!storage) return;
+    
     if (!order) {
         const allLabs = room.getCached(LOOK_STRUCTURES, STRUCTURE_LAB);
         for (const lab of allLabs) {
@@ -111,8 +113,7 @@ function runScientist(creep) {
     }
 
     const { input1, input2, labInput1, labInput2, outputs } = roles;
-    const storage = room.getCached('structure', STRUCTURE_STORAGE)[0];
-    if (!storage) return;
+
 
     // =============================
     // VERIFICATION SI COMMANDE COMPLETE
