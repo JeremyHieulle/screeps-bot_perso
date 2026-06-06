@@ -7,6 +7,7 @@ function accumulateEvents(room) {
     global._metricsAccum ??= {};
     global._metricsAccum[room.name] ??= {
         harvest: 0,
+        harvestRemote: 0,
         build: 0,
         upgrade: 0,
         attack: 0,
@@ -14,22 +15,30 @@ function accumulateEvents(room) {
     };
 
     const accum = global._metricsAccum[room.name];
-    const events = room.getEventLog();
 
-    for (const e of events) {
+    // events locaux
+    for (const e of room.getEventLog()) {
         switch (e.event) {
-            case EVENT_HARVEST:
-                accum.harvest += e.data.amount || 0;
-                break;
-            case EVENT_BUILD:
-                accum.build += e.data.energySpent || 0;
-                break;
-            case EVENT_UPGRADE_CONTROLLER:
-                accum.upgrade += e.data.energySpent || 0;
-                break;
-            case EVENT_ATTACK:
-                accum.attack += e.data.damage || 0;
-                break;
+            case EVENT_HARVEST:   accum.harvest  += e.data.amount      || 0; break;
+            case EVENT_BUILD:     accum.build    += e.data.energySpent || 0; break;
+            case EVENT_UPGRADE_CONTROLLER: accum.upgrade += e.data.energySpent || 0; break;
+            case EVENT_ATTACK:    accum.attack   += e.data.damage      || 0; break;
+        }
+    }
+
+    // events remotes visibles
+    const remotes = Object.entries(Memory.remotes || {})
+        .filter(([, r]) => r.owner === room.name)
+        .map(([name]) => name);
+
+    for (const remoteName of remotes) {
+        const remoteRoom = Game.rooms[remoteName];
+        if (!remoteRoom) continue;
+
+        for (const e of remoteRoom.getEventLog()) {
+            if (e.event === EVENT_HARVEST) {
+                accum.harvestRemote += e.data.amount || 0;
+            }
         }
     }
 
@@ -52,36 +61,41 @@ function snapshotMetrics(room) {
     // =========================================
     // FLUX ECONOMIQUE
     // =========================================
-    metrics.harvestPerTick   = +(accum.harvest / ticks).toFixed(2);
-    metrics.buildPerTick     = +(accum.build   / ticks).toFixed(2);
-    metrics.upgradePerTick   = +(accum.upgrade / ticks).toFixed(2);
-    metrics.consumedPerTick  = +((accum.build + accum.upgrade) / ticks).toFixed(2);
-    metrics.netFlux          = +(metrics.harvestPerTick - metrics.consumedPerTick).toFixed(2);
+    metrics.harvestLocalPerTick  = +(accum.harvest       / ticks).toFixed(2);
+    metrics.harvestRemotePerTick = +(accum.harvestRemote  / ticks).toFixed(2);
+    metrics.harvestPerTick       = +((accum.harvest + accum.harvestRemote) / ticks).toFixed(2);
+    metrics.consumedPerTick      = +((accum.build + accum.upgrade) / ticks).toFixed(2);
+    metrics.netFlux              = +(metrics.harvestPerTick - metrics.consumedPerTick).toFixed(2);
 
     // =========================================
     // SPAWN
     // =========================================
-    const creeps = room.find(FIND_MY_CREEPS);
-    let spawnLoad = 0;
 
-    for (const creep of creeps) {
-        spawnLoad += (creep.body.length * 3) / CREEP_LIFE_TIME;
+    const allCreeps = Object.values(Game.creeps).filter(c =>
+        Game.spawns[c.memory.bornIn]?.room.name === room.name
+    );
+
+    let spawnLoadLocal = 0;
+    let spawnLoadRemote = 0;
+
+    for (const creep of allCreeps) {
+        const load = (creep.body.length * 3) / CREEP_LIFE_TIME;
+        const isRemote = [
+            'remoteMiner', 'remoteHauler', 'remoteReserver',
+            'remoteDefender', 'coreKiller'
+        ].includes(creep.memory.role);
+        
+        if (isRemote) spawnLoadRemote += load;
+        else spawnLoadLocal += load;
     }
+
     for (const queued of (room.memory.spawnQueue || [])) {
-        spawnLoad += (queued.body.length * 3) / CREEP_LIFE_TIME;
+        spawnLoadLocal += (queued.body.length * 3) / CREEP_LIFE_TIME;
     }
 
-    metrics.spawnLoad    = +spawnLoad.toFixed(3);
-    metrics.spawnQueue   = (room.memory.spawnQueue || []).length;
-    metrics.creepCount   = creeps.length;
-
-    // roles
-    metrics.roles = {};
-    for (const creep of creeps) {
-        const role = creep.memory.role || 'unknown';
-        metrics.roles[role] ??= 0;
-        metrics.roles[role]++;
-    }
+    metrics.spawnLoadLocal  = +spawnLoadLocal.toFixed(3);
+    metrics.spawnLoadRemote = +spawnLoadRemote.toFixed(3);
+    metrics.spawnLoad       = +(spawnLoadLocal + spawnLoadRemote).toFixed(3);
 
     // =========================================
     // LOGISTIQUE
