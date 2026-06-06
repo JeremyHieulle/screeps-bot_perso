@@ -19,6 +19,13 @@ module.exports = {
                         creep.myWithdraw(upgradeContainer, RESOURCE_ENERGY);
                         return;
                     }
+                    
+                    const coreContainer = creep.room.findByTag("core", STRUCTURE_CONTAINER);
+                    if ( coreContainer && coreContainer.store[RESOURCE_ENERGY] > 0 ) {
+
+                        creep.myWithdraw(coreContainer, RESOURCE_ENERGY);
+                        return;
+                    }
                 }
 
                 creep.idle();

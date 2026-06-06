@@ -981,7 +981,14 @@ Room.prototype.spawnCreepForRole = function(role, max, opts = {}) {
     const body = buildBody(role, energy);
 
     if (!body || body.length === 0) return ERR_NOT_ENOUGH_ENERGY;
-
+    if (role === 'upgrader' && body.length > 20) {
+        body.push(MOVE);
+        body.push(MOVE);
+        body.push(MOVE);
+        body.push(MOVE);
+        body.push(MOVE);
+        body.push(MOVE);
+    }
     const name = `${role}_${Game.time}_${Math.random().toString(36).slice(2,8)}`;
     const pushMemory = opts.memory || {};
 

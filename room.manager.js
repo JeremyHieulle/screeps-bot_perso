@@ -1,5 +1,7 @@
 //const heatmap = require('room.heatmap');
 const labManager = require('lab.manager');
+const roomMetrics = require('room.metrics');
+
 const visual = require('room.visual');
 
 function getExistingStructures(room) {
@@ -278,7 +280,7 @@ module.exports = {
         const mem = room.memory;
         const cache = room.memory.cache
         
-        if (Game.time % 25 === 0) room.recordMetricsTest();
+        roomMetrics.run(room);
         
         if (!cache || Game.time % 500 === 0) {
             room.buildCache();

@@ -201,6 +201,11 @@ function runScientist(creep) {
         if (creep.store[resourceToFill] === 0) {
             const available = storage.store[resourceToFill] || 0;
             if (available === 0) {
+                const terminal = room.getCached('structure', STRUCTURE_TERMINAL)[0];
+                if (terminal && terminal.store[resourceToFill]) {
+                    creep.myWithdraw(terminal, resourceToFill);
+                    return;
+                }
                 creep.say('no ' + resourceToFill);
                 return;
             }
