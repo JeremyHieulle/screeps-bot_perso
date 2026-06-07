@@ -967,7 +967,7 @@ Room.prototype.spawnCreepForRole = function(role, max, opts = {}) {
     const energyByRole = {
         hauler: this.energyCapacityAvailable * 2 / 3,
         builder: 2400,
-        upgrader: 2100,
+        upgrader: (this.controller?.level >= 7 ? this.energyCapacityAvailable - 400 : this.energyCapacityAvailable),
         // remoteHauler: 1500,
         scout: 2100,
         attacker: 2100,
@@ -981,14 +981,10 @@ Room.prototype.spawnCreepForRole = function(role, max, opts = {}) {
     const body = buildBody(role, energy);
 
     if (!body || body.length === 0) return ERR_NOT_ENOUGH_ENERGY;
-    if (role === 'upgrader' && body.length > 20) {
-        body.push(MOVE);
-        body.push(MOVE);
-        body.push(MOVE);
-        body.push(MOVE);
-        body.push(MOVE);
-        body.push(MOVE);
+    if (role === 'upgrader' && body.length > 20 && body.length <= 42) {
+        body.push(MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CARRY, CARRY);
     }
+    
     const name = `${role}_${Game.time}_${Math.random().toString(36).slice(2,8)}`;
     const pushMemory = opts.memory || {};
 
