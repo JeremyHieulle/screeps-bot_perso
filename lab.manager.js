@@ -146,7 +146,7 @@ function runScientist(creep) {
     }
 
     // =============================
-    // VIDER OUTPUTS PLEINS → STORAGE
+    // SUPPRIMER ORDER QUAND COMPLETED
     // =============================
     if (creep.store[order.resource] > 0) {
         if (creep.pos.getRangeTo(storage) > 1) {
@@ -166,6 +166,9 @@ function runScientist(creep) {
         return;
     }
 
+    // =============================
+    // VIDER OUTPUTS PLEINS → STORAGE
+    // =============================
     for (const output of outputs) {
         if (!output.mineralType) continue;
         if (output.store.getFreeCapacity(order.resource) === 0) {
