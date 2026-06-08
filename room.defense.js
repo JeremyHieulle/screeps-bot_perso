@@ -30,9 +30,20 @@ module.exports = {
 
         if ( hostiles.length === 0 ) {
             const repairs = room.find(FIND_STRUCTURES, {
-                filter: s => (s.structureType === STRUCTURE_ROAD ||
-                              s.structureType === STRUCTURE_CONTAINER ) &&
-                             s.hits < 0.75 * s.hitsMax
+                filter: s => 
+                (
+                    (
+                    s.structureType === STRUCTURE_ROAD ||
+                    s.structureType === STRUCTURE_CONTAINER 
+                    ) &&
+                    s.hits < 0.75 * s.hitsMax
+                ) || (
+                    (
+                        s.structureType === STRUCTURE_WALL ||
+                        s.structureType === STRUCTURE_RAMPART
+                    ) &&
+                    s.hits < 5000000
+                )
             })
 
             if ( repairs.length > 0 ) {
