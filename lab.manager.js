@@ -137,7 +137,7 @@ function runScientist(creep) {
         if (!output.mineralType) continue;
         if (output.mineralType !== order.resource) {
             if (creep.pos.getRangeTo(output) > 1) {
-                creep.moveTo(output, { reusePath: 20 });
+                creep.moveTo(output, { reusePath: 5 });
                 return;
             }
             creep.withdraw(output, output.mineralType);
@@ -150,7 +150,7 @@ function runScientist(creep) {
     // =============================
     if (creep.store[order.resource] > 0) {
         if (creep.pos.getRangeTo(storage) > 1) {
-            creep.moveTo(storage, { reusePath: 20 });
+            creep.moveTo(storage, { reusePath: 5 });
             return;
         }
         creep.transfer(storage, order.resource);
@@ -171,10 +171,10 @@ function runScientist(creep) {
     // =============================
     for (const output of outputs) {
         if (!output.mineralType) continue;
-        if (output.store.getFreeCapacity(order.resource) === 0) {
+        if (output.store.getFreeCapacity(order.resource) < 1000) {
             if (creep.store.getFreeCapacity() === 0) break;
             if (creep.pos.getRangeTo(output) > 1) {
-                creep.moveTo(output, { reusePath: 20 });
+                creep.moveTo(output, { reusePath: 5 });
                 return;
             }
             creep.withdraw(output, order.resource);
@@ -213,7 +213,7 @@ function runScientist(creep) {
                 return;
             }
             if (creep.pos.getRangeTo(storage) > 1) {
-                creep.moveTo(storage, { reusePath: 20 });
+                creep.moveTo(storage, { reusePath: 5 });
                 return;
             }
             creep.withdraw(storage, resourceToFill,
@@ -221,7 +221,7 @@ function runScientist(creep) {
             return;
         }
         if (creep.pos.getRangeTo(labToFill) > 1) {
-            creep.moveTo(labToFill, { reusePath: 20 });
+            creep.moveTo(labToFill, { reusePath: 5 });
             return;
         }
         creep.transfer(labToFill, resourceToFill);
