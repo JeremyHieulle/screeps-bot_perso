@@ -191,7 +191,7 @@ Creep.prototype.run = function () {
     let job = null;
 
     if (JOB_ROLES.has(this.memory.role) ) {
-        job = this.room.memory.jobs[this.memory.jobId];
+        job = this.room.memory.jobs?.[this.memory.jobId];
         
         if (!job && this.room.requestJob(this)) {
             job = this.room.memory.jobs[this.memory.jobId];
