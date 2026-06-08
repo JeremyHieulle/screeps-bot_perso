@@ -32,7 +32,7 @@ module.exports = {
                 return;
             }
 
-            if (creep.store[RESOURCE_ENERGY] === 0) {
+            if (creep.store[RESOURCE_ENERGY] < creep.getActiveBodyparts(WORK)) {
 
                 creep.getEnergy();
                 return;
