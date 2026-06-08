@@ -2,38 +2,21 @@ module.exports.run = function (room) {
 
     const v = room.visual;
 
-    // MAJ de l'UI
-    if (Game.time % 10 === 0) {
-        const roleCounts = {};
-
-        const data = [];
-        const creeps = room.find(FIND_MY_CREEPS);
-
-        for (const creep of creeps) {
-            roleCounts[creep.memory.role] = (roleCounts[creep.memory.role] || 0) + 1;
-        }
-
-        for (let role in roleCounts) {
-            data.push(`Role ${role} : ${roleCounts[role] || 0}/${room.memory.requested[role]}`);
-        }
-        data.push("Bucket: " + Game.cpu.bucket);
-        room.memory.visualData = data;
-    }
-
     // Affichage de l'UI
-    const data = room.memory.visualData;
-    const x = 1;
+    const metrics = global._metrics?.[room.name];
+    if (!metrics) return;
+
     let y = 1;
-    if ( !room.memory.upgradeContainerId ) {
-        v.text('📌 Missing upgradeContainerId', x, y, { align: 'left', opacity: 0.5, color: '#ff7070' });
-        y++;
-    }
-    if (data.length) {
-        for ( row in data ) {
-            v.text(data[row], x, y, { align: 'left', opacity: 0.5});
-            y++;
-        }
-    }
+    const x = 1;
+    
+    Object.entries(metrics).forEach(([key, value]) => {
+        const display = typeof value === 'object' 
+            ? `${key}: ${JSON.stringify(value)}`
+            : `${key}: ${value}`;
+        v.text(display, x, y, { align: 'left', opacity: 0.5, font: 0.4 });
+        y += 0.55;
+    });
+    v.text("Bucket: " + Game.cpu.bucket, x, y, { align: 'left', opacity: 0.5, font: 0.4 });
 
     const core = room.getCore();
     if (core !== ERR_NOT_FOUND)
