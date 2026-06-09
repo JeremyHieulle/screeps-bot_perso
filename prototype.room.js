@@ -1,293 +1,9 @@
 const { buildBody } = require('spawning.bodyBuilder');
 const cache = require('room.cache');
 
-Room.prototype.recordMetricsTest = function () {
-
-    // =========================================
-    // INIT
-    // =========================================
-
-    this.memory.metricsTest ??= {};
-
-    const metrics = this.memory.metricsTest;
-
-    metrics.lastUpdated = Game.time;
-
-    // =========================================
-    // CREEPS
-    // =========================================
-
-    const creeps = this.find(FIND_MY_CREEPS);
-
-    metrics.creepCount = creeps.length;
-
-    metrics.roles = {};
-
-    let spawnUsage = 0;
-    let workParts = 0;
-    let carryParts = 0;
-
-    for (const creep of creeps) {
-
-        const role = creep.memory.role || 'unknown';
-
-        metrics.roles[role] ??= 0;
-        metrics.roles[role]++;
-
-        // =========================
-        // BODYPARTS
-        // =========================
-
-        for (const part of creep.body) {
-
-            if (part.hits <= 0) continue;
-
-            switch (part.type) {
-
-                case WORK:
-                    workParts++;
-                    break;
-
-                case CARRY:
-                    carryParts++;
-                    break;
-            }
-        }
-
-        // =========================
-        // SPAWN LOAD
-        // =========================
-
-        spawnUsage += (
-            creep.body.length * 3
-        ) / CREEP_LIFE_TIME;
-    }
-
-    // queued creeps
-    for (const queued of (this.memory.spawnQueue || [])) {
-
-        spawnUsage += (
-            queued.body.length * 3
-        ) / CREEP_LIFE_TIME;
-    }
-
-    metrics.spawnLoad = Number(
-        spawnUsage.toFixed(3)
-    );
-
-    // =========================================
-    // ENERGY ECONOMY
-    // =========================================
-
-    metrics.energyIncomeEstimate =
-        workParts * HARVEST_POWER;
-
-    metrics.carryCapacity =
-        carryParts * CARRY_CAPACITY;
-
-    // =========================================
-    // STORAGE BUFFER
-    // =========================================
-
-    const storage = this.storage;
-
-    metrics.storageEnergy =
-        storage?.store[RESOURCE_ENERGY] || 0;
-
-    const terminal = this.terminal;
-
-    metrics.terminalEnergy =
-        terminal?.store[RESOURCE_ENERGY] || 0;
-
-    // =========================================
-    // DROPPED ENERGY
-    // =========================================
-
-    const dropped = this.find(FIND_DROPPED_RESOURCES, {
-        filter: r =>
-            r.resourceType === RESOURCE_ENERGY
-    });
-
-    metrics.droppedEnergy = dropped.reduce(
-        (sum, r) => sum + r.amount,
-        0
-    );
-
-    // =========================================
-    // CONTAINERS
-    // =========================================
-
-    const containers =
-        this.getCached(
-            LOOK_STRUCTURES,
-            STRUCTURE_CONTAINER
-        );
-
-    let containerEnergy = 0;
-
-    for (const c of containers) {
-
-        containerEnergy +=
-            c.store[RESOURCE_ENERGY] || 0;
-    }
-
-    metrics.containerEnergy =
-        containerEnergy;
-
-    // =========================================
-    // REPAIR PRESSURE
-    // =========================================
-
-    const repairables = this.find(FIND_STRUCTURES, {
-        filter: s => {
-
-            // ignore roads low impact
-            if (
-                s.structureType === STRUCTURE_ROAD
-            ) {
-                return false;
-            }
-
-            // rampart/wall softcap
-            if (
-                s.structureType === STRUCTURE_WALL ||
-                s.structureType === STRUCTURE_RAMPART
-            ) {
-                return s.hits < 500000;
-            }
-
-            return s.hits < s.hitsMax;
-        }
-    });
-
-    let repairPressure = 0;
-
-    for (const s of repairables) {
-
-        if (
-            s.structureType === STRUCTURE_WALL ||
-            s.structureType === STRUCTURE_RAMPART
-        ) {
-
-            repairPressure += (
-                500000 - s.hits
-            );
-
-        } else {
-
-            repairPressure += (
-                s.hitsMax - s.hits
-            );
-        }
-    }
-
-    metrics.repairPressure =
-        repairPressure;
-
-    // =========================================
-    // BUILD PRESSURE
-    // =========================================
-
-    const sites =
-        this.find(FIND_CONSTRUCTION_SITES);
-
-    metrics.constructionSites =
-        sites.length;
-
-    metrics.buildPressure =
-        sites.reduce(
-            (sum, s) =>
-                sum + (
-                    s.progressTotal - s.progress
-                ),
-            0
-        );
-
-    // =========================================
-    // CONTROLLER
-    // =========================================
-
-    metrics.controller = {
-
-        level:
-            this.controller?.level || 0,
-
-        progress:
-            this.controller?.progress || 0,
-
-        progressTotal:
-            this.controller?.progressTotal || 0,
-
-        downgrade:
-            this.controller?.ticksToDowngrade || 0
-    };
-
-    // =========================================
-    // SOURCES
-    // =========================================
-
-    const sources = this.find(FIND_SOURCES);
-
-    metrics.sources = [];
-
-    for (const source of sources) {
-
-        metrics.sources.push({
-
-            id: source.id,
-
-            energy: source.energy,
-
-            freeSpots:
-                source.pos
-                    .getOpenPositions?.()
-                    ?.length || 0
-        });
-    }
-
-    // =========================================
-    // LINKS
-    // =========================================
-
-    const links =
-        this.getCached(
-            LOOK_STRUCTURES,
-            STRUCTURE_LINK
-        );
-
-    metrics.links = [];
-
-    for (const link of links) {
-
-        const meta =
-            this.memory.cache
-                ?.structureMeta
-                ?.[link.id];
-
-        metrics.links.push({
-
-            id: link.id,
-
-            tag: meta?.tag || null,
-
-            energy:
-                link.store[RESOURCE_ENERGY],
-
-            free:
-                link.store.getFreeCapacity(
-                    RESOURCE_ENERGY
-                )
-        });
-    }
-
-    // =========================================
-    // CPU DEBUG
-    // =========================================
-
-    metrics.cpu = Game.cpu.getUsed();
-
-    return metrics;
-};
+// =============================
+// ROOM CACHE
+// =============================
 
 Room.prototype.buildCache = function() {
     cache.buildRoomCache(this);
@@ -297,50 +13,26 @@ Room.prototype.updateCache = function() {
     cache.updateRoomCache(this);
 }
 
-Room.prototype.getCached = function(category, item) {
-
-    this._cached ??= {};
-    this._cached[category] ??= {};
-
-    if (this._cached[category][item]) {
-        return this._cached[category][item];
-    }
-
-    const ids = this.memory.cache?.[category]?.[item] || [];
-
-    const objects = [];
-
-    for (const id of ids) {
-
-        const obj = Game.getObjectById(id);
-
-        if (obj) {
-            objects.push(obj);
-        }
-    }
-
-    // runtime cache
-    this._cached[category][item] = objects;
-
-    return objects;
+Room.prototype.getCache = function(category, type) {
+    return global._cache?.[this.name]?.[category]?.[type] || [];
 };
 
-Room.prototype.getCache = function(category, item) {
-
-    this._cache ??= {};
-    this._cache[category] ??= {};
-
-    if (this._cache[category][item]) {
-        return this._cache[category][item];
-    }
-
-    const ids = this.memory.cache?.[category]?.[item] || [];
-
-    // runtime cache
-    this._cache[category][item] = ids;
-
-    return ids;
+Room.prototype.getCached = function(category, type) {
+    return this.getCache(category, type)
+        .map(id => Game.getObjectById(id))
+        .filter(Boolean);
 };
+
+Room.prototype.getStructureMeta = function(id = null) {
+    const meta = global._cache?.[this.name]?.structureMeta;
+    if (!meta) return null;
+    if (id) return meta[id] ?? null;
+    return meta;
+};
+
+Room.prototype.hasStructure = function(type) {
+    return this.getCache(LOOK_STRUCTURES, type)?.length > 0;
+}
 
 Room.prototype.hasExtractor = function(mineral) {
 
@@ -555,7 +247,7 @@ Room.prototype.requestJob = function (creep) {
 Room.prototype.runLinks = function () {
 
     const links = this.getCached(LOOK_STRUCTURES, STRUCTURE_LINK);
-    const meta = this.memory.cache?.structureMeta;
+    const meta = this.getStructureMeta();
 
     if (!links || !meta) return;
 
@@ -1024,7 +716,7 @@ Room.prototype.getRolePriority = function(role) {
 
 Room.prototype.findByTag = function (tag, structureType = null) {
 
-    const meta = this.memory.cache?.structureMeta;
+    const meta = this.getStructureMeta();
     if (!meta) return null;
 
     for (const id in meta) {

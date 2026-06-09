@@ -150,6 +150,7 @@ module.exports.loop = function () {
 
     }
 
+    
     const total = Object.values(creepCount)
     .reduce((sum, n) => sum + n, 0);
 

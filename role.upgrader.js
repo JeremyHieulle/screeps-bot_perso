@@ -1,7 +1,7 @@
 module.exports = {
 
     run(creep, job) {
-        if (creep.room.memory.logistics.hasHauler) {
+        if (creep.room.getCache("logistics", "hasHauler")) {
             if (!job) {
 
                 creep.toggleWorkingState();

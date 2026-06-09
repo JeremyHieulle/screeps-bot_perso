@@ -10,10 +10,6 @@ module.exports = {
                 c.ticksToLive > 50
         });
 
-        room.memory.logistics = {
-            hasHauler: haulers.length > 0
-        };
-
         const storage = room.getCached("structure", STRUCTURE_STORAGE);
             if ( storage.length === 0 ) return;
 

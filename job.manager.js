@@ -158,8 +158,7 @@ module.exports = {
             }
 
             if (spatialJob.tag === 'mineral') {
-                const extractor = mem.cache.structure?.extractor;
-                if (!extractor || extractor.length === 0) continue;
+                if (!room.hasStructure(STRUCTURE_EXTRACTOR)) continue;
 
                 const mineral = Game.getObjectById(spatialJob.targetId);
                 if (mineral && mineral.mineralAmount === 0) continue;
@@ -180,7 +179,7 @@ module.exports = {
 
         for (const container of cachedContainers) {
 
-            const meta = room.memory.cache.structureMeta?.[container.id];
+            const meta = room.getStructureMeta(container.id);
             if (!meta) continue;
 
             const store = container.store;
@@ -229,7 +228,7 @@ module.exports = {
 
         for ( const spawn of cachedSpawns ) {
 
-            const meta = room.memory.cache.structureMeta?.[spawn.id];
+            const meta = room.getStructureMeta(spawn.id);
 
             if ( spawn && spawn.store.getFreeCapacity(RESOURCE_ENERGY) > 0 ) {
 
@@ -279,7 +278,7 @@ module.exports = {
 
         for (const link of cachedLinks) {
 
-            const meta = room.memory.cache.structureMeta?.[link.id];
+            const meta = room.getStructureMeta(link.id);
             if (!meta || meta.tag !== 'core') continue;
 
             const energy = link.store.getUsedCapacity(RESOURCE_ENERGY);
