@@ -213,6 +213,11 @@ Creep.prototype.run = function () {
     }
 }
 
+Creep.prototype.getOriginRoomName = function () {
+    const spawn = Game.spawns[this.memory.bornIn];
+    return spawn?.room?.name;
+}
+
 Creep.prototype.getEnergy = function (options = {}) {
 
     const upgradeContainer = this.room.findByTag("controller", STRUCTURE_CONTAINER);

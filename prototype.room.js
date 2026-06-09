@@ -445,7 +445,7 @@ Room.prototype.requestJob = function (creep) {
     const hasManager =
         this.getCache("logistics", "hasManager") > 0;
 
-    const corePos = this.memory.plan.corePos;
+    const corePos = Memory.rooms[creep.getOriginRoomName()].plan.corePos;
 
     const jobs = Object.values(this.memory.jobs)
 
