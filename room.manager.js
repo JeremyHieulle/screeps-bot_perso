@@ -278,11 +278,10 @@ module.exports = {
             return;
         
         const mem = room.memory;
-        const cache = room.memory.cache
         
         roomMetrics.run(room);
-        
-        if (!cache || Game.time % 500 === 0) {
+
+        if (!global._cache?.[room.name] || Game.time % 500 === 0) {
             room.buildCache();
         }
             
