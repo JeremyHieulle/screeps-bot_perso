@@ -151,17 +151,16 @@ module.exports = {
 
         for ( const spatialJob of mem.plan.spatialJob) {
             let type = null;
-            switch ( spatialJob.tag ) {
-                case "source": type = "harvest"; break;
-                case "controller": type = "upgrade"; break;
-                case "mineral": type = "harvest";  break;
-            }
-
-            if (spatialJob.tag === 'mineral') {
+            if ( spatialJob.tag === "controller" ) {
+                type = "upgrade"
+            } else if (spatialJob.tag === "mineral") {
                 if (!room.hasStructure(STRUCTURE_EXTRACTOR)) continue;
 
                 const mineral = Game.getObjectById(spatialJob.targetId);
                 if (mineral && mineral.mineralAmount === 0) continue;
+                type = "harvest"
+            } else {
+                continue
             }
 
             const originId = spatialJob.targetId;
