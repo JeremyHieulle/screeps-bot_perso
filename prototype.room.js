@@ -691,6 +691,11 @@ Room.prototype.spawnCreepForRole = function(role, max, opts = {}) {
     });
 };
 
+Room.prototype.addToSpawnQueue = function(entry) {
+    this.memory.spawnQueue ??= [];
+    this.memory.spawnQueue.push(entry);
+};
+
 Room.prototype.getJobTypeForRole = function (role) {
 
       switch(role) {
