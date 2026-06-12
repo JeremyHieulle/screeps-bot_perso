@@ -63,7 +63,7 @@ module.exports = {
                 if (result === OK) {
                     queue.shift();
                     console.log(`Spawning ${name} at ${room.name} with body: ${request.body}`)
-                    creep.memory.creepNames.push(name);
+                    room.memory.creepNames.push(name);
                     return
                 } else {
                     console.log(`Echec spawn ${name} at ${room.name} (${result})`)
