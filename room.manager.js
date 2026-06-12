@@ -1,6 +1,6 @@
 //const heatmap = require('room.heatmap');
-const sourceManager = require('manager.sources');
-const mineralManager = require('manager.minerals');
+const sourceManager = require('manage.sources');
+const mineralManager = require('manage.minerals');
 const labManager = require('lab.manager');
 const roomMetrics = require('room.metrics');
 
@@ -295,7 +295,7 @@ module.exports = {
         room.runLinks();
         sourceManager.run(room);
         mineralManager.run(room);
-        
+
         room.spawnCreepsNeeded();
         
         room.runRemotes();
