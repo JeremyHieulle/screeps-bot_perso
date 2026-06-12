@@ -38,7 +38,7 @@ function manageMineralSpawn(room) {
     if (!room.hasStructure(STRUCTURE_EXTRACTOR)) return;
 
     const mineralPlan = room.memory?.plan?.spatialJob
-        .filter(j => j.tag === 'mineral') || [];
+        .filter(j => j.tag === 'mineral')[0] || [];
     if (!mineralPlan) return;
 
     const mineral = Game.getObjectById(mineralPlan.targetId);
