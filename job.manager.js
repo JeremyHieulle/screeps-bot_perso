@@ -84,13 +84,6 @@ function update(room) {
             }
         }
 
-        // --- legacy
-        if (job.type === 'harvest' && obj instanceof Mineral) {
-            const amount = obj.mineralAmount
-            if (amount > 0) job.amount = amount
-            else delete mem.jobs[jobId];
-        }
-
         if (job.type === 'withdraw') {
 
             const hasResources = Object.values(obj.store)
@@ -153,12 +146,6 @@ module.exports = {
             let type = null;
             if ( spatialJob.tag === "controller" ) {
                 type = "upgrade"
-            } else if (spatialJob.tag === "mineral") {
-                if (!room.hasStructure(STRUCTURE_EXTRACTOR)) continue;
-
-                const mineral = Game.getObjectById(spatialJob.targetId);
-                if (mineral && mineral.mineralAmount === 0) continue;
-                type = "harvest"
             } else {
                 continue
             }

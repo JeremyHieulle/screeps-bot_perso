@@ -180,7 +180,6 @@ Creep.prototype.run = function () {
     }
 
     const JOB_ROLES = new Set([
-        'harvester',
         'hauler',
         'builder',
         'upgrader',
