@@ -278,7 +278,8 @@ module.exports = {
             return;
         
         const mem = room.memory;
-        
+
+        room.cacheCreeps();
         roomMetrics.run(room);
 
         if (!global._cache?.[room.name] || Game.time % 500 === 0) {
@@ -291,32 +292,7 @@ module.exports = {
         
         room.runLinks();
         
-        // Spawn demand supply
         room.spawnCreepsNeeded();
-
-        // Remplacement des jobs fixes (dis au creep de rejoindre l'autre creep)
-        const creeps = room.find(FIND_MY_CREEPS);
-        const assignedAsReplacement = new Set(
-            creeps
-                .filter(c => c.memory.replaces)
-                .map(c => c.memory.replaces) // les noms des creeps déjà couverts
-        );
-
-        for (const creep of creeps) {
-            if (creep.ticksToLive < 100 && !assignedAsReplacement.has(creep.name)) {
-                const replacement = creep.pos.findClosestByRange(FIND_MY_CREEPS, {
-                    filter: c =>
-                        c.memory.role === creep.memory.role &&
-                        !c.memory.jobId &&
-                        !c.memory.replaces
-                });
-
-                if (replacement) {
-                    replacement.memory.replaces = creep.name;
-                    assignedAsReplacement.add(creep.name);
-                }
-            }
-        }
         
         room.runRemotes();
 

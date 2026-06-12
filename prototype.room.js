@@ -43,6 +43,43 @@ Room.prototype.hasExtractor = function(mineral) {
     return false;
 }
 
+Room.prototype.cacheCreeps = function() {
+  this.creeps = {}
+
+  const creepNames = []
+
+  for (const creepName of this.memory.creepNames || []) {
+    const creep = Game.creeps[creepName]
+
+    if (!creep) {
+      dataStorage.clearCreepData(creepName)
+      continue
+    }
+
+    creepNames.push(creepName)
+
+    const role = creep.memory.role || "idler"
+
+    this.creeps[role] = this.creeps[role] || []
+
+    this.creeps[role].push(creep)
+  }
+
+  this.memory.creepNames = creepNames
+}
+
+Room.prototype.getCreepsByRole = function(role) {
+    if (!this.creeps) {
+      return []
+    }
+
+    if (!this.creeps[role]) {
+      return []
+    }
+
+    return this.creeps[role]
+  },
+
 Room.prototype.debugPlan = function(plan) {
     const v = this.visual;
 
@@ -525,20 +562,12 @@ Room.prototype.spawnCreepsNeeded = function() {
     // =============================
     // BOOTSTRAP PHASE
     // =============================
-    if (total('harvester') === 0) {
-        this.spawnCreepForRole('harvester', Math.max(300, this.energyAvailable), { priority: 0 });
-        return;
-    }
 
     if (total('hauler') < 1 ) {
         this.spawnCreepForRole('hauler', Math.max(300, this.energyAvailable), { priority: 1 });
         return;
     }
 
-    // =============================
-    // HARVESTER NEED
-    // =============================
-    const harvesterNeed = this.getCache("logistics", "harvesterNeed");
     const haulerNeed = this.getCache("logistics", "haulerNeed");
 
     const sources = this.find(FIND_SOURCES);
@@ -550,15 +579,6 @@ Room.prototype.spawnCreepsNeeded = function() {
     const exhausted_mineral = this.find(FIND_MINERALS, {
         filter: m => m.mineralAmount === 0
     });
-
-    const mineralHarvester =
-        ((extractor.length - exhausted_mineral.length) > 0)
-            ? (extractor.length - exhausted_mineral.length)
-            : 0;
-
-    if (total('harvester') < harvesterNeed + mineralHarvester) {
-        this.spawnCreepForRole('harvester');
-    }
 
     // =============================
     // HAULER STRESS
