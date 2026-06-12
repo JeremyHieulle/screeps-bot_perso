@@ -158,7 +158,7 @@ function manageHarvesterSpawn(room) {
 
     room.addToSpawnQueue({
         role: 'harvester',
-        body: spawnBody,
+        body: body,
         priority: total === 0 ? 1 : 10,
         memory: {
             role: 'harvester',
