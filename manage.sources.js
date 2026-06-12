@@ -57,6 +57,7 @@ function runHarvester(creep) {
         const pos = new RoomPosition(workPos.x, workPos.y, creep.room.name);
         if (!creep.pos.isEqualTo(pos)) {
             creep.moveTo(pos);
+            return
         }
     }
     
