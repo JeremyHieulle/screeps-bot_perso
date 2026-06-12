@@ -706,7 +706,7 @@ Room.prototype.spawnCreepForRole = function(role, max, opts = {}) {
         role,
         body,
         name,
-        pushMemory
+        memory: pushMemory
     });
 };
 

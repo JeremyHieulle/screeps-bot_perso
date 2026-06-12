@@ -57,7 +57,7 @@ module.exports = {
                         working:false,
                         bornIn:spawn.name,
                         state:'afk',
-                        ...request.pushMemory
+                        ...request.memory
                     }
                 });
                 if (result === OK) {
