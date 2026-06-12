@@ -53,7 +53,7 @@ function manageMineralSpawn(room) {
 
     const total = harvesters.length + queued;
 
-    if (total >= mineralPlan.length) return;
+    if (total >= 1) return;
 
 
     const body = [WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK, CARRY, MOVE, MOVE, MOVE, MOVE, MOVE];
