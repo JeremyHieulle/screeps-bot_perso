@@ -45,7 +45,8 @@ module.exports = {
                 queue.sort((a,b)=>a.priority-b.priority);
         
                 const request = queue[0];
-        
+                room.memory.creepNames ??= [];
+                
                 if (_.sum(request.body, p=>BODYPART_COST[p]) > room.energyAvailable)
                     return;
         

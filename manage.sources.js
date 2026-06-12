@@ -48,6 +48,7 @@ function runHarvester(creep) {
 
     if (currentCarry + harvestPerTick > carryCapacity) {
         if (depositEnergy(creep) === OK) {
+            creep.say('📦');
             return;
         }
     }
