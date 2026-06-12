@@ -49,10 +49,10 @@ module.exports = {
                 if (_.sum(request.body, p=>BODYPART_COST[p]) > room.energyAvailable)
                     return;
         
-                const result = spawn.spawnCreep(request.body, request.name, {
+                const result = spawn.spawnCreep(request.body, request.name || `${request.role}-${Game.time}`, {
                     memory:{
                         role:request.role,
-                        jobId:request.jobId,
+                        jobId:request.jobId || null,
                         working:false,
                         bornIn:spawn.name,
                         state:'afk',
