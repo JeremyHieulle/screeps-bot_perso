@@ -52,7 +52,6 @@ Room.prototype.cacheCreeps = function() {
     const creep = Game.creeps[creepName]
 
     if (!creep) {
-      dataStorage.clearCreepData(creepName)
       continue
     }
 

@@ -49,7 +49,8 @@ module.exports = {
                 if (_.sum(request.body, p=>BODYPART_COST[p]) > room.energyAvailable)
                     return;
         
-                const result = spawn.spawnCreep(request.body, request.name || `${request.role}-${Game.time}`, {
+                const name = request.name || `${request.role}-${Game.time}`;
+                const result = spawn.spawnCreep(request.body, name, {
                     memory:{
                         role:request.role,
                         jobId:request.jobId || null,
@@ -61,10 +62,11 @@ module.exports = {
                 });
                 if (result === OK) {
                     queue.shift();
-                    console.log(`Spawning ${request.name} at ${room.name} with body: ${request.body}`)
+                    console.log(`Spawning ${name} at ${room.name} with body: ${request.body}`)
+                    creep.memory.creepNames.push(name);
                     return
                 } else {
-                    console.log(`Echec spawn ${request.name} at ${room.name} (${result})`)
+                    console.log(`Echec spawn ${name} at ${room.name} (${result})`)
                 }
             }
         }
