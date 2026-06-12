@@ -75,10 +75,7 @@ function runHarvester(creep) {
 
 function manageHarvesterSpawn(room) {
 
-    const harvesters = Object.values(Game.creeps).filter(c =>
-        c.memory.role === 'harvester' &&
-        Game.spawns[c.memory.bornIn]?.room.name === room.name
-    );
+    const harvesters = room.getCreepsByRole('harvester');
 
     const queued = (room.memory.spawnQueue || [])
         .filter(q => q.role === 'harvester').length;
